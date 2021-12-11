@@ -614,7 +614,6 @@ class Tetris:
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0
 
         # game clock
         self.clock = pygame.time.Clock()
@@ -689,13 +688,13 @@ class Tetris:
 
     def game_logic(self):
         self.grid = self.board.create_grid()
-        fall_speed = 0.28  # (board.level * 0.05)
+        fall_speed = 0.28 # self.board.level * 0.05
 
         self.fall_time += self.clock.get_rawtime()
         self.clock.tick()
 
         if self.fall_time / 1000 > fall_speed:
-            fall_time = 0
+            self.fall_time = 0
             self.current_piece.y += 1
 
             if not valid_space(self.current_piece, self.grid):  # piece has landed
@@ -773,3 +772,4 @@ while tetris_game.run:
 
     if tetris_game.change_piece:
         tetris_game.change_state()
+

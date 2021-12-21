@@ -9,11 +9,10 @@ import pickle
 import math
 
 class AI:
-    def __init__(self, rows, columns, w_1, w_2, w_3, w_4, w_5, landed= None, neural_network = None):  # piece is an object
+    def __init__(self, rows, columns, landed= None, neural_network = None):  # piece is an object
         self.rows = rows
         self.columns = columns
         self.field = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
-        self.weights = np.array([w_1, w_2, w_3, w_4, w_5])
         self.landed = landed
         self.final_cords = []
         self.heuris = hu.Heuristics(self.columns, self.rows)  # this is a heuristics obj
@@ -216,9 +215,7 @@ class AI:
 
 
 def init_ai_object(rows, columns):
-    a, b, c, d, e = -0.1, -0.5, -0.2, -0.3, -0.2
-
-    ai_obj = AI(rows, columns, a, b, c, d, e)
+    ai_obj = AI(rows, columns)
 
     ai_obj.get_possible_configurations()
 
@@ -266,7 +263,7 @@ def eval_genomes(genomes, config):
         hueris.update_field(ai.field)
 
         # calculate genome fitness
-        current_fitness += np.dot(hueris.get_heuristics(), ai.weights)
+        current_fitness += tetris_game.score
 
         # do this throughout the whole game
         while tetris_game.run:
@@ -282,7 +279,7 @@ def eval_genomes(genomes, config):
                 tetris_game.make_ai_move()
 
                 hueris.update_field(ai.field)
-                current_fitness += np.dot(hueris.get_heuristics(), ai.weights)
+                current_fitness += tetris_game.score
 
             if not tetris_game.run:
                 current_fitness += (tetris_game.tetrises*4 + tetris_game.score*2 + tetris_game.lines*2)

@@ -37,11 +37,6 @@ class AI_Agent:
         self.memory = deque(maxlen=MAX_MEMORY)
 
     def get_possible_configurations(self):
-        # need to change this a bit so it works for every single piece
-        """
-        These make up the nodes in the graph for A*
-        """
-
         positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if ind_x != 0 or ind_x != 1] for ind_x in range(self.rows)]
         all_positions = [tupl for li in positions for tupl in li]
 

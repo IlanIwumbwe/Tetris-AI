@@ -175,24 +175,26 @@ class Piece:
             self.state = ''.join(new_piece)
 
     def current_position(self):  # get grid positions of a passed piece object
-        p = [self.state[i:i + 4] for i in range(0, len(self.state), 4)]
-        positions = []
+        p = data.Data(self.str_id, self.rot_index).get_data()
 
-        for ind_x, i in enumerate(p):
-            for ind_y, j in enumerate(i):
-                if j == 'x':
-                    positions.append((self.x + ind_y, self.y + ind_x))  # translate 'x' indexes into GRID indexes
+        lowest_block = sorted(p, key=lambda x: x[1])[-1]
+
+        l_x, l_y = lowest_block
+
+        positions = [((l_x - x)+self.x, (l_y - y)+self.y) for x, y in p]
+
         return positions
 
     def get_config(self):
-        grid_positions = self.current_position()
+        p = data.Data(self.str_id, self.rot_index).get_data()
 
-        lowest_block = sorted(grid_positions, key=lambda x: x[1])[-1]
+        lowest_block = sorted(p, key=lambda x: x[1])[-1]
+
         l_x, l_y = lowest_block
 
-        cords = [(l_x - x, l_y - y) for x, y in grid_positions]
+        cords = [(l_x - x, l_y - y) for x, y in p]
 
-        return self.rot_index, (l_x, l_y), cords, 0
+        return self.rot_index, (self.x, self.y), cords, 0
 
 
 class Collision:

@@ -1,4 +1,3 @@
 # Tetris
-A genetic algorithm that learns to play Tetris effectively. 
-
+Reinforcement lerarning with Q leanring
 It's still a work in progress......

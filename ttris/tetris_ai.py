@@ -190,7 +190,7 @@ class Piece:
         lowest_block = sorted(grid_positions, key=lambda x: x[1])[-1]
         l_x, l_y = lowest_block
 
-        cords = [(x - l_x, y - l_y) for x, y in grid_positions]
+        cords = [(l_x - x, l_y - y) for x, y in grid_positions]
 
         return self.rot_index, (l_x, l_y), cords, 0
 

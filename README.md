@@ -1,3 +1,0 @@
-# Tetris
-Reinforcement lerarning with Q leanring
-It's still a work in progress......

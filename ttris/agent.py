@@ -216,34 +216,6 @@ def train():
     tetris_game = tetris_ai.Tetris()
 
     while True:
-        agent.landed = tetris_game.landed
-
-        # update the agent with useful info to find the best move
-        agent.update_agent(tetris_game.current_piece)
-
-        tetris_game.best_move = agent.get_best_move(tetris_game.current_piece)
-
-        tetris_game.game_logic()
-
-        old_state = hueris.get_heuristics()
-
-        # make the move
-        tetris_game.make_ai_move()
-
-        reward, current_score, done = tetris_game.reward_info()
-
-        agent.landed = tetris_game.landed
-
-        # update the agent with useful info to find the best move
-        agent.update_agent(tetris_game.current_piece)
-
-        new_state = hueris.get_heuristics()
-
-        # train short memory
-        agent.train_short_memory(old_state, agent.actions_scores, reward, new_state, done)
-
-        # remember
-        agent.remember(old_state, agent.actions_scores, reward, new_state, done)
         while tetris_game.run:
             agent.landed = tetris_game.landed
 
@@ -286,6 +258,15 @@ def train():
                     record_score = current_score
                     # save this model, its probably good
                     agent.neural_network.save()
+                    
+                # reset to a new tetris game, and reset the agent as well
+                tetris_game = tetris_ai.Tetris()
+
+                agent.final_cords = []
+                agent.all_configurations_per_piece = {}
+                agent.all_configurations = {}
+
+                agent.get_possible_configurations()
 
                 tetris_game = tetris_ai.Tetris()
 

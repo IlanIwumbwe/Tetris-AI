@@ -710,7 +710,7 @@ class Tetris:
 
     def game_logic(self):
         self.grid = self.board.create_grid()
-        self.fall_speed = 0.14 # (board.level * 0.05)
+        self.fall_speed = 0.08 # (board.level * 0.05)
 
         self.fall_time += self.clock.get_rawtime()
         self.clock.tick()

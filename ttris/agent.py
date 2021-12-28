@@ -1,16 +1,8 @@
 import tetris_ai
 import heuristics as hu
 import data
-import torch
-import random
+import neat
 import pygame
-from collections import deque
-from model import LinearQNet, Trainer
-import math
-
-MAX_MEMORY = 100_000
-BATCH_SIZE = 1000
-LR = 0.003
 
 class AI_Agent:
     def __init__(self, rows, columns):  # piece is an object
@@ -26,17 +18,16 @@ class AI_Agent:
         self.all_pieces = ['I', 'S', 'O', 'Z', 'T', 'L', 'J']
         self.all_configurations_per_piece = {}
         self.all_configurations = {}
-        self.graph_per_piece = {}
-        self.graph_for_current_piece = {}
         self.cord_scores = {}
         self.actions_scores = []
-        self.n_games = 0 # number of games
-        self.gamma = 0.8 # discount rate, between 0 and 1
-        self.neural_network = LinearQNet(7, 500, 40)
-        self.trainer = Trainer(self.neural_network, LR, self.gamma)
-        self.memory = deque(maxlen=MAX_MEMORY)
+        self.neural_network = None
 
     def get_possible_configurations(self):
+        # need to change this a bit so it works for every single piece
+        """
+        These make up the nodes in the graph for A*
+        """
+
         positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if ind_x != 0 or ind_x != 1] for ind_x in range(self.rows)]
         all_positions = [tupl for li in positions for tupl in li]
 
@@ -83,6 +74,13 @@ class AI_Agent:
     def set_all_configurations(self, current_piece):
         self.all_configurations = self.all_configurations_per_piece[current_piece.str_id]
 
+    def get_piece_mapping(self, current_piece):
+        mapping = [0 for _ in range(7)]
+
+        mapping[self.all_pieces.index(current_piece.str_id)] = 1
+
+        return mapping
+
     def update_agent(self, current_piece):
         self.set_all_configurations(current_piece)
         self.update_all_configurations()
@@ -112,39 +110,13 @@ class AI_Agent:
         for cord in self.all_configurations:
             if cord in self.final_cords:
                 self.final_positions[cord] = self.all_configurations.get(cord)
-    
-    def get_cord_and_rot_index(self, space_index):
-        return space_index%4, math.floor(space_index/4)
-        
+
     def evaluation_function(self, current_piece):
-        """
-        go through final positions, place them in num grid,
-        calculate score
-        """
-
-        heuristics = self.heuris.get_heuristics()
-        state0 = torch.tensor(heuristics, dtype=torch.float)
-        scores = self.neural_network(state0)
-
-        self.actions_scores = scores.tolist()
-        dict_of_scores = {}
-
-        for ind, val in enumerate(scores.tolist()):
-            dict_of_scores[self.get_cord_and_rot_index(ind)] = val
-
-        final_dict_of_scores = {}
-
         if len(self.final_positions) != 0:
-            for x, y in self.final_positions.keys():
-                for rot_index, x_cord in dict_of_scores.keys():
-                    if x == x_cord:
-                        final_dict_of_scores[(rot_index, x_cord)] = dict_of_scores.get((rot_index, x_cord))
-
-            best_move = max(final_dict_of_scores, key=final_dict_of_scores.get)
-
             field = self.field.copy()
+            score_move_per_column = {}
+
             for cord, positions in self.final_positions.items():
-                x, y = cord
 
                 for index, pos in positions:  # first part is the rotation index, second part are the positions
                     for x, y in pos:
@@ -153,6 +125,9 @@ class AI_Agent:
                     self.heuris.update_field(field)
 
                     possible_reward = self.heuris.get_reward()
+                    board_state = self.heuris.get_heuristics()
+                    # get score from nueral net
+                    move_score = self.neural_network.activate(board_state)
 
                     # reset field, and update heuristics field
                     for x, y in pos:
@@ -160,8 +135,15 @@ class AI_Agent:
 
                     self.heuris.update_field(field)
 
-                    if index == best_move[0] and x == best_move[1]:
-                        self.best_move = index, cord, positions, possible_reward
+                    score_move_per_column[cord] = index, cord, pos, possible_reward, move_score
+
+            # go through each move per column score and choose highest scoring move
+            best_move = max(score_move_per_column.items(), key= lambda pair: pair[1][4])[1]
+
+            print(best_move)
+
+            self.best_move = best_move[:-1]
+
         else:
             self.best_move = current_piece.get_config()
 
@@ -175,21 +157,6 @@ class AI_Agent:
 
         return self.best_move
 
-    def train_short_memory(self, state, action, reward, next_state, done):
-        self.trainer.train_step(state, action, reward, next_state, done)
-
-    def train_long_memory(self):
-        if len(self.memory) > BATCH_SIZE:
-            mini_sample = random.sample(self.memory, BATCH_SIZE) # list of tuples from remember
-        else:
-            mini_sample = self.memory
-
-        states, actions, rewards, next_states, dones = zip(*mini_sample)
-        self.trainer.train_step(states, actions, rewards, next_states, dones)
-
-    def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
-
     def print_field(self):
         for i in self.field:
             print(i)
@@ -201,16 +168,23 @@ def init_agent(rows, columns):
 
     return ai_obj
 
-def train():
+
+def eval_genomes(genomes, config):
     pygame.init()
     agent = init_agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
-    hueris = hu.Heuristics(tetris_ai.COLUMNS, tetris_ai.ROWS)
 
-    record_score = 0
+    for genome_id, genome in genomes:
+        current_fitness = 0
+        tetris_game = tetris_ai.Tetris()
 
-    tetris_game = tetris_ai.Tetris()
+        agent.final_cords = []
+        agent.all_configurations_per_piece = {}
+        agent.all_configurations = {}
 
-    while True:
+        agent.get_possible_configurations()
+
+        agent.neural_network = neat.nn.FeedForwardNetwork.create(genome, config)
+
         while tetris_game.run:
             agent.landed = tetris_game.landed
 
@@ -221,54 +195,34 @@ def train():
 
             tetris_game.game_logic()
 
-            old_state = hueris.get_heuristics()
-
             # make the move
             tetris_game.make_ai_move()
 
-            reward, current_score, done = tetris_game.reward_info()
+            current_fitness += tetris_game.reward_info()
 
             agent.landed = tetris_game.landed
 
             # update the agent with useful info to find the best move
             agent.update_agent(tetris_game.current_piece)
 
-            new_state = hueris.get_heuristics()
-
-            # train short memory
-            agent.train_short_memory(old_state, agent.actions_scores, reward, new_state, done)
-
-            # remember
-            agent.remember(old_state, agent.actions_scores, reward, new_state, done)
-
             if tetris_game.change_piece:
                 tetris_game.change_state()
 
             if not tetris_game.run:
-                agent.n_games += 1
-                # train long memory
-                agent.train_long_memory()
-
-                if current_score > record_score:
-                    record_score = current_score
-                    # save this model, its probably good
-                    agent.neural_network.save()
-                    
+                genome.fitness = current_fitness
                 # reset to a new tetris game, and reset the agent as well
-                tetris_game = tetris_ai.Tetris()
+                break
 
-                agent.final_cords = []
-                agent.all_configurations_per_piece = {}
-                agent.all_configurations = {}
+config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
+                     neat.DefaultStagnation, 'config-feedfoward.txt')
 
-                agent.get_possible_configurations()
+p = neat.Population(config)
 
-                tetris_game = tetris_ai.Tetris()
+p.add_reporter(neat.StdOutReporter(True))
+stats = neat.StatisticsReporter()
+p.add_reporter(stats)
 
-                print(f'GAME: {agent.n_games}\nScore: {current_score}\nRecord:{record_score}')
-
-
-train()
+winner = p.run(eval_genomes)
 
 
 

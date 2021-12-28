@@ -1,2 +1,2 @@
 # Tetris
-Reinforcement learning with Q learning on Tetris
+Genetic algorithm with NEAT-Python

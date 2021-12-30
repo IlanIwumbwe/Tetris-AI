@@ -111,4 +111,4 @@ class Heuristics:
         return [self.aggr_height(), self.total_holes(), self.bumpiness(), self.std_heights(), self.pits(), self.deepest_well(), self.lines_cleared()]
 
     def get_reward(self):
-        return sum([self.aggr_height()*-2, self.total_holes()*-5, self.bumpiness()*-3, self.std_heights()*-2, self.pits()*2, self.deepest_well()*2])
+        return sum([self.aggr_height()*-500, self.total_holes()*-250, self.bumpiness()*-300, self.std_heights()*-500, self.pits()*30, self.deepest_well()*30, self.lines_cleared()*6000])

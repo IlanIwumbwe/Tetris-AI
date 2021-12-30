@@ -2,7 +2,7 @@ import tetris_ai
 import heuristics as hu
 import data
 import neat
-import pygame
+import pickle
 
 class AI_Agent:
     def __init__(self, rows, columns):  # piece is an object
@@ -94,7 +94,11 @@ class AI_Agent:
             for pos, val in self.landed.items():
                 if val != (255, 255, 255):
                     x, y = pos
-                    self.field[y][x] = 1
+                    try:
+                        self.field[y][x] = 1
+                    except IndexError:
+                        print('random index error is random')
+                        pass
 
     def update_all_configurations(self):
         if self.landed != {}:
@@ -140,8 +144,6 @@ class AI_Agent:
             # go through each move per column score and choose highest scoring move
             best_move = max(score_move_per_column.items(), key= lambda pair: pair[1][4])[1]
 
-            print(best_move)
-
             self.best_move = best_move[:-1]
 
         else:
@@ -161,71 +163,65 @@ class AI_Agent:
         for i in self.field:
             print(i)
 
-def init_agent(rows, columns):
-    ai_obj = AI_Agent(rows, columns)
+class Trainer:
+    def __init__(self):
+        self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
+        self.agent.get_possible_configurations()
 
-    ai_obj.get_possible_configurations()
+    def eval_genomes(self, genomes, config):
+        for genome_id, genome in genomes:
+            current_fitness = 0
+            tetris_game = tetris_ai.Tetris()
 
-    return ai_obj
+            self.agent.neural_network = neat.nn.FeedForwardNetwork.create(genome, config)
 
+            while tetris_game.run:
+                self.agent.landed = tetris_game.landed
 
-def eval_genomes(genomes, config):
-    pygame.init()
-    agent = init_agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
 
-    for genome_id, genome in genomes:
-        current_fitness = 0
-        tetris_game = tetris_ai.Tetris()
+                tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
 
-        agent.final_cords = []
-        agent.all_configurations_per_piece = {}
-        agent.all_configurations = {}
+                tetris_game.game_logic()
 
-        agent.get_possible_configurations()
+                # make the move
+                tetris_game.make_ai_move()
 
-        agent.neural_network = neat.nn.FeedForwardNetwork.create(genome, config)
+                current_fitness += tetris_game.reward_info()
 
-        while tetris_game.run:
-            agent.landed = tetris_game.landed
+                self.agent.landed = tetris_game.landed
 
-            # update the agent with useful info to find the best move
-            agent.update_agent(tetris_game.current_piece)
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
 
-            tetris_game.best_move = agent.get_best_move(tetris_game.current_piece)
+                if tetris_game.change_piece:
+                    tetris_game.change_state()
 
-            tetris_game.game_logic()
+                if not tetris_game.run:
+                    genome.fitness = current_fitness
+                    # reset to a new tetris game, and reset the agent as well
+                    break
 
-            # make the move
-            tetris_game.make_ai_move()
+    def train(self):
+        config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
+                             neat.DefaultStagnation, 'config-feedfoward.txt')
 
-            current_fitness += tetris_game.reward_info()
+        p = neat.Population(config)
 
-            agent.landed = tetris_game.landed
+        p.add_reporter(neat.StdOutReporter(True))
+        stats = neat.StatisticsReporter()
+        p.add_reporter(stats)
 
-            # update the agent with useful info to find the best move
-            agent.update_agent(tetris_game.current_piece)
+        winner = p.run(self.eval_genomes)
 
-            if tetris_game.change_piece:
-                tetris_game.change_state()
-
-            if not tetris_game.run:
-                genome.fitness = current_fitness
-                # reset to a new tetris game, and reset the agent as well
-                break
-
-config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
-                     neat.DefaultStagnation, 'config-feedfoward.txt')
-
-p = neat.Population(config)
-
-p.add_reporter(neat.StdOutReporter(True))
-stats = neat.StatisticsReporter()
-p.add_reporter(stats)
-
-winner = p.run(eval_genomes)
+        with open('winner.pkl', 'wb') as output:
+            pickle.dump(winner, output, 1)
 
 
+if __name__ == '__main__':
+    trainer = Trainer()
 
-
+    trainer.train()
 
 

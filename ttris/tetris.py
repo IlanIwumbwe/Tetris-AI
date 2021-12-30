@@ -44,8 +44,6 @@ J = '....' \
 
 pieces = [I, S, O, Z, T, L, J]
 str_pieces = {I: 'I', S: 'S', O: 'O', Z: 'Z', T: 'T', L: 'L', J: 'J'}
-orig_num_pieces = {I: 1, S: 2, O: 3, Z: 4, T: 5, L: 6, J: 7}
-new_num_pieces = {I: 8, S: 9, O: 10, Z: 11, T: 12, L: 13, J: 14}
 
 centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}  # some fixes  # 1,2 I , L , J
 

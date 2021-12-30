@@ -173,6 +173,8 @@ class Trainer:
             current_fitness = 0
             tetris_game = tetris_ai.Tetris()
 
+            self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
+            self.agent.get_possible_configurations()
             self.agent.neural_network = neat.nn.FeedForwardNetwork.create(genome, config)
 
             while tetris_game.run:
@@ -180,7 +182,6 @@ class Trainer:
 
                 # update the agent with useful info to find the best move
                 self.agent.update_agent(tetris_game.current_piece)
-
                 tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
 
                 tetris_game.game_logic()

@@ -206,45 +206,54 @@ class Collision:
         self.landed = {}
 
     def create_field(self, landed):
-        landed_piece = None
-
         self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
         # create landed positions
         if landed != {}:
-            for (x, y), colour in landed.items():
-                for piece, piece_colour in colours.items():
-                    if colour == piece_colour:
-                        landed_piece = piece
-
-                self.field[y + BOUNDARY][x + BOUNDARY] = orig_num_pieces[landed_piece]
-                self.landed[(x + BOUNDARY, y + BOUNDARY)] = orig_num_pieces[landed_piece]  # fix here
+            for (x, y) in self.landed.keys():
+                try:
+                    self.field[y+BOUNDARY][x+BOUNDARY] = 1
+                except IndexError:
+                    print('Error on landed piece placement')
+                    pass
 
         # create boundary
         for x, y in self.boundary:
             try:
-                self.field[x][y] = 20
+                self.field[x][y] = 1
             except IndexError:
                 print('Boundary positions are wrong')
 
-    def field_state(self):
-        landed_and_wall = {}
+    def move_works(self, piece, move):  # collision is an object
+        srs = SRS(piece)
 
-        for x, y in self.boundary:
-            landed_and_wall[(x, y)] = self.field[x][y]
+        if action_space[move] == 'cw':
+            piece.rot_index = Mod(piece.rot_index + 1, 4)
+            rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
-        for (x, y), i in self.landed.items():
-            landed_and_wall[(y, x)] = i
+            return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
 
-        return landed_and_wall
+        elif action_space[move] == 'ccw':
+            piece.rot_index = Mod(piece.rot_index - 1, 4)
+            rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
-    def show_board(self):
-        print('New Frame......................................')
-        for row in self.field:
-            print(f'{row} \n')
+            return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
 
+        elif action_space[move] == 'down':
+            pos = piece.current_position()
 
-def has_collided(old_state, updated_field):
-    return not all([old_state[i] == updated_field[i] for i in old_state.keys()])
+            return all([self.field[y + BOUNDARY + 1][x + BOUNDARY] == 0 for x, y in pos])
+
+        elif action_space[move] == 'right':
+            pos = piece.current_position()
+
+            return all([self.field[y + BOUNDARY][x + BOUNDARY + 1] == 0 for x, y in pos])
+
+        elif action_space[move] == 'left':
+            pos = piece.current_position()
+
+            return all([self.field[y + BOUNDARY][x + BOUNDARY - 1] == 0 for x, y in pos])
+
+        return True
 
 
 class Board:
@@ -416,138 +425,6 @@ def num_field(board):
     return num_grid
 
 
-def move_works(collision, piece, move):  # collision is an object
-    srs = SRS(piece)
-
-    if action_space[move] == 'cw':
-        coll_field = collision.field
-        old_state = collision.field_state()
-
-        updated_field = {}
-
-        piece.rot_index = Mod(piece.rot_index + 1, 4)
-        rotation_cords = get_rotation_cords(srs, 'cw', piece)
-
-        # print(rotation_cords)
-
-        for x, y in rotation_cords:
-            coll_field[y + BOUNDARY][x + BOUNDARY] = new_num_pieces[piece.piece]
-
-        for ind_x, row in enumerate(coll_field):
-            for ind_y, col in enumerate(row):
-                updated_field[(ind_x, ind_y)] = col
-
-        if has_collided(old_state, updated_field):
-            return False
-
-    elif action_space[move] == 'ccw':
-        coll_field = collision.field
-        old_state = collision.field_state()
-
-        updated_field = {}
-
-        piece.rot_index = Mod(piece.rot_index - 1, 4)
-        rotation_cords = get_rotation_cords(srs, 'ccw', piece)
-
-        for x, y in rotation_cords:
-            coll_field[y + BOUNDARY][x + BOUNDARY] = new_num_pieces[piece.piece]
-
-        for ind_x, row in enumerate(coll_field):
-            for ind_y, col in enumerate(row):
-                updated_field[(ind_x, ind_y)] = col
-
-        if has_collided(old_state, updated_field):
-            return False
-
-    elif action_space[move] == 'down':
-        pos = piece.current_position()
-
-        coll_field = collision.field
-        old_state = collision.field_state()
-
-        updated_field = {}
-
-        for x, y in pos:
-            coll_field[y + 1 + BOUNDARY][x + BOUNDARY] = new_num_pieces[piece.piece]
-
-        for ind_x, row in enumerate(coll_field):
-            for ind_y, col in enumerate(row):
-                updated_field[(ind_x, ind_y)] = col
-
-        if has_collided(old_state, updated_field):
-            return False
-
-    elif action_space[move] == 'right':
-        pos = piece.current_position()
-
-        coll_field = collision.field
-        old_state = collision.field_state()
-        updated_field = {}
-
-        for x, y in pos:
-            coll_field[y + BOUNDARY][x + 1 + BOUNDARY] = new_num_pieces[piece.piece]
-
-        for ind_x, row in enumerate(coll_field):
-            for ind_y, col in enumerate(row):
-                updated_field[(ind_x, ind_y)] = col
-
-        if has_collided(old_state, updated_field):
-            return False
-
-    elif action_space[move] == 'left':
-        pos = piece.current_position()
-
-        coll_field = collision.field
-        old_state = collision.field_state()
-        updated_field = {}
-
-        for x, y in pos:
-            coll_field[y + BOUNDARY][x + BOUNDARY - 1] = new_num_pieces[piece.piece]
-
-        for ind_x, row in enumerate(coll_field):
-            for ind_y, col in enumerate(row):
-                updated_field[(ind_x, ind_y)] = col
-
-        if has_collided(old_state, updated_field):
-            return False
-
-    return True
-
-
-def make_move(move, piece, collision):
-    if action_space[move] == 'down':
-        if move_works(collision, piece, move):
-            piece.y += 1
-            return 'worked'
-        else:
-            return 'collided'
-
-    elif action_space[move] == 'right':
-        if move_works(collision, piece, move):
-            piece.x += 1
-
-    elif action_space[move] == 'left':
-        if move_works(collision, piece, move):
-            piece.x -= 1
-
-    elif action_space[move] == 'cw':
-        if move_works(collision, piece, move) != False and not piece.piece == O:
-            piece.rotate('cw')
-
-    elif action_space[move] == 'ccw':
-        if move_works(collision, piece, move) != False and not piece.piece == O:
-            piece.rotate('ccw')
-
-    elif action_space[move] == 'hd':
-        collided = False
-
-        while not collided:
-            done = make_move(pygame.K_DOWN, piece, collision)
-
-            if done != 'worked':
-                collided = True
-
-
 def get_rotation_cords(srs, dir, piece):
     data_for_I = data.Data('I', piece.rot_index).get_data()
 
@@ -712,7 +589,7 @@ class Tetris:
             if event.type == pygame.KEYDOWN:
                 try:
                     self.collision.create_field(self.landed)
-                    make_move(event.key, self.current_piece, self.collision)
+                    self.make_move(event.key)
 
                     if action_space[event.key] == 'hold':
                         self.hold_piece = True if self.held_piece is None else False
@@ -761,9 +638,40 @@ class Tetris:
         self.draw_window()
 
         if self.lost():
-            # genome.fitness = current_fitness
             self.update_scores()
             self.run = False
+
+    def make_move(self, move):
+        if action_space[move] == 'down':
+            if self.collision.move_works(self.current_piece, move):
+                self.current_piece.y += 1
+                return 'worked'
+            else:
+                return 'collided'
+
+        elif action_space[move] == 'right':
+            if self.collision.move_works(self.current_piece, move):
+                self.current_piece.x += 1
+
+        elif action_space[move] == 'left':
+            if self.collision.move_works(self.current_piece, move):
+                self.current_piece.x -= 1
+
+        elif action_space[move] == 'cw':
+            if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
+                self.current_piece.rotate('cw')
+
+        elif action_space[move] == 'ccw':
+            if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
+                self.current_piece.rotate('ccw')
+
+        elif action_space[move] == 'hd':
+            works = True
+
+            while works:
+                self.current_piece.y += 1
+
+                works = self.collision.move_works(self.current_piece, pygame.K_DOWN)
 
 tetris_game = Tetris()
 

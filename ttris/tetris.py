@@ -42,6 +42,9 @@ J = '....' \
     'xxx.' \
     '....'
 
+CLOCKWISE_MATRIX = [[0, 1], [-1, 0]]
+ANTICLOCKWISE_MATRIX = [[0, -1], [1, 0]]
+
 pieces = [I, S, O, Z, T, L, J]
 str_pieces = {I: 'I', S: 'S', O: 'O', Z: 'Z', T: 'T', L: 'L', J: 'J'}
 
@@ -96,6 +99,7 @@ class SRS:
         self.rot_index = self.piece.rot_index
 
     def rotation(self, clockwise, piece_string):
+        mat = None
         piece = [piece_string[i:i + 4] for i in range(0, len(piece_string), 4)]
         c_x, c_y = self.centre
 
@@ -116,15 +120,13 @@ class SRS:
             relative_cords.append((x - c_x, y - c_y))
 
         if clockwise:
-            matrix = data.CLOCKWISE_MATRIX
+            mat = CLOCKWISE_MATRIX
         if not clockwise:
-            matrix = data.ANTICLOCKWISE_MATRIX
+            mat = ANTICLOCKWISE_MATRIX
 
         # calculate new relative cord to centre
         for cord in relative_cords:
-            new_r_cord = np.dot(matrix, cord)
-            for _ in range(self.rot_index):
-                new_r_cord = np.dot(new_r_cord, matrix)
+            new_r_cord = np.dot(cord, mat)
             new_relative_cords.append(new_r_cord)
 
         # get new global cords
@@ -132,7 +134,6 @@ class SRS:
             new_global_cords.append((x + c_x, y + c_y))
 
         return new_global_cords
-
 
 class Piece:
     def __init__(self, x=None, y=None, piece=None):
@@ -147,51 +148,46 @@ class Piece:
         self.centre = centres[self.piece]
         self.test_state = None
         self.str_id = str_pieces[self.piece]
+        self.state_cords = data.Data(self.str_id, 0).get_data()
 
     def rotate(self, dir):
         rotation_data_for_I = data.Data(self.str_id, self.rot_index).get_data()
         srs = SRS(self)
-        new_piece = ['.'] * 16
+        new_str = ['.' for _ in range(16)]
 
-        if self.str_id != 'I':
-            if dir == 'cw':
-                self.clockwise = True
+        if len(self.state_cords) != 0:
+            if self.str_id != 'I':
+                if dir == 'cw':
+                    self.clockwise = True
+                else:
+                    self.clockwise = False
+
+                self.state_cords = srs.rotation(self.clockwise, self.state)
+
+                for x, y in self.state_cords:
+                    ind = 4 * y + x
+                    new_str[ind] = 'x'
+
+                self.state = ''.join(new_str)
             else:
-                self.clockwise = False
+                self.state_cords = rotation_data_for_I
 
-            rotation_cords = srs.rotation(dir, self.piece)
+                for x, y in self.state_cords:
+                    ind = 4 * y + x
+                    new_str[ind] = 'x'
 
-            for x, y in rotation_cords:
-                ind = 4 * y + x
-                new_piece[ind] = 'x'
-
-            self.state = ''.join(new_piece)  # at this stage, its a no-kicks-state
-        else:
-            for x, y in rotation_data_for_I:
-                ind = 4 * y + x
-                new_piece[ind] = 'x'
-
-            self.state = ''.join(new_piece)
+                self.state = ''.join(new_str)
 
     def current_position(self):  # get grid positions of a passed piece object
-        p = [self.state[i:i + 4] for i in range(0, len(self.state), 4)]
-        positions = []
+        lowest_block = sorted(self.state_cords, key=lambda x: x[1])[-1]
 
-        for ind_x, i in enumerate(p):
-            for ind_y, j in enumerate(i):
-                if j == 'x':
-                    positions.append((self.x + ind_y, self.y + ind_x))  # translate 'x' indexes into GRID indexes
-        return positions
-
-    def get_config(self):
-        grid_positions = self.current_position()
-
-        lowest_block = sorted(grid_positions, key=lambda x: x[1])[-1]
         l_x, l_y = lowest_block
 
-        cords = [(x - l_x, y - l_y) for x, y in grid_positions]
+        rel_cords = [(x-l_x, y-l_y) for x, y in self.state_cords]
+        return [(r_x+self.x, r_y+self.y) for r_x, r_y in rel_cords]
 
-        return self.rot_index, (l_x, l_y), str(cords)
+    def get_config(self):
+        return self.rot_index, (self.x, self.y), self.current_position(), 0
 
 
 class Collision:
@@ -400,16 +396,7 @@ class Piece_Gne:
 
         popped = self.pop(buffer, rng)
 
-        if str_pieces[popped] in 'I,O'.split(','):
-            piece_obj = Piece(4, 0, popped)
-            piece_obj.x += 1
-            piece_obj.x -= 1
-            return piece_obj
-        else:
-            piece_obj = Piece(4, 0, popped)
-            piece_obj.x += 1
-            piece_obj.x -= 1
-            return piece_obj
+        return Piece(4, 1, popped)
 
 
 def num_field(board):

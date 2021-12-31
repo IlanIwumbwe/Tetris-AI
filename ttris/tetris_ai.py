@@ -4,6 +4,7 @@ from pygame import mixer
 from itertools import permutations
 import data
 import numpy as np
+import time
 
 # game assets
 
@@ -42,10 +43,13 @@ J = '....' \
     'xxx.' \
     '....'
 
+CLOCKWISE_MATRIX = [[0, 1], [-1, 0]]
+ANTICLOCKWISE_MATRIX = [[0, -1], [1, 0]]
+
 pieces = [I, S, O, Z, T, L, J]
 str_pieces = {I: 'I', S: 'S', O: 'O', Z: 'Z', T: 'T', L: 'L', J: 'J'}
 
-centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}  # some fixes  # 1,2 I , L , J
+centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}
 
 colours = {I: (51, 255, 255), S: (255, 255, 100), O: (255, 51, 255), Z: (0, 0, 255), T: (255, 128, 0), L: (51, 255, 51),
            J: (255, 0, 0)}
@@ -95,6 +99,7 @@ class SRS:
         self.rot_index = self.piece.rot_index
 
     def rotation(self, clockwise, piece_string):
+        mat = None
         piece = [piece_string[i:i + 4] for i in range(0, len(piece_string), 4)]
         c_x, c_y = self.centre
 
@@ -115,15 +120,13 @@ class SRS:
             relative_cords.append((x - c_x, y - c_y))
 
         if clockwise:
-            mat = data.CLOCKWISE_MATRIX
+            mat = CLOCKWISE_MATRIX
         if not clockwise:
-            mat = data.ANTICLOCKWISE_MATRIX
+            mat = ANTICLOCKWISE_MATRIX
 
         # calculate new relative cord to centre
         for cord in relative_cords:
             new_r_cord = np.dot(cord, mat)
-            for _ in range(self.rot_index):
-                new_r_cord = np.dot(new_r_cord, mat)
             new_relative_cords.append(new_r_cord)
 
         # get new global cords
@@ -144,56 +147,47 @@ class Piece:
         self.clockwise = None
         self.all = [(j, i) for i in range(4) for j in range(4)]
         self.centre = centres[self.piece]
-        self.test_state = None
         self.str_id = str_pieces[self.piece]
+        self.state_cords = data.Data(self.str_id, 0).get_data()
 
     def rotate(self, dir):
         rotation_data_for_I = data.Data(self.str_id, self.rot_index).get_data()
         srs = SRS(self)
-        new_piece = ['.'] * 16
+        new_str = ['.' for _ in range(16)]
 
-        if self.str_id != 'I':
-            if dir == 'cw':
-                self.clockwise = True
+        if len(self.state_cords) != 0:
+            if self.str_id != 'I':
+                if dir == 'cw':
+                    self.clockwise = True
+                else:
+                    self.clockwise = False
+
+                self.state_cords = srs.rotation(self.clockwise, self.state)
+
+                for x, y in self.state_cords:
+                    ind = 4*y + x
+                    new_str[ind] = 'x'
+
+                self.state = ''.join(new_str)
             else:
-                self.clockwise = False
+                self.state_cords = rotation_data_for_I
 
-            rotation_cords = srs.rotation(dir, self.piece)
+                for x, y in self.state_cords:
+                    ind = 4 * y + x
+                    new_str[ind] = 'x'
 
-            for x, y in rotation_cords:
-                ind = 4 * y + x
-                new_piece[ind] = 'x'
-
-            self.state = ''.join(new_piece)  # at this stage, its a no-kicks-state
-        else:
-            for x, y in rotation_data_for_I:
-                ind = 4 * y + x
-                new_piece[ind] = 'x'
-
-            self.state = ''.join(new_piece)
+                self.state = ''.join(new_str)
 
     def current_position(self):  # get grid positions of a passed piece object
-        p = data.Data(self.str_id, self.rot_index).get_data()
-
-        lowest_block = sorted(p, key=lambda x: x[1])[-1]
+        lowest_block = sorted(self.state_cords, key=lambda x: x[1])[-1]
 
         l_x, l_y = lowest_block
 
-        positions = [((l_x - x)+self.x, (l_y - y)+self.y) for x, y in p]
-
-        return positions
+        rel_cords = [(x-l_x, y-l_y) for x, y in self.state_cords]
+        return [(r_x+self.x, r_y+self.y) for r_x, r_y in rel_cords]
 
     def get_config(self):
-        p = data.Data(self.str_id, self.rot_index).get_data()
-
-        lowest_block = sorted(p, key=lambda x: x[1])[-1]
-
-        l_x, l_y = lowest_block
-
-        cords = [(l_x - x, l_y - y) for x, y in p]
-
-        return self.rot_index, (self.x, self.y), cords, 0
-
+        return self.rot_index, (self.x, self.y), self.current_position(), 0
 
 class Collision:
     def __init__(self):  # piece is an object
@@ -228,7 +222,7 @@ class Collision:
         if action_space[move] == 'cw':
             piece.rot_index = Mod(piece.rot_index + 1, 4)
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
-            
+
             try:
                 return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
             except IndexError:
@@ -238,7 +232,7 @@ class Collision:
         elif action_space[move] == 'ccw':
             piece.rot_index = Mod(piece.rot_index - 1, 4)
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
-            
+
             try:
                 return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
             except IndexError:
@@ -247,7 +241,7 @@ class Collision:
 
         elif action_space[move] == 'down':
             pos = piece.current_position()
-            
+
             try:
                 return all([self.field[y + BOUNDARY + 1][x + BOUNDARY] == 0 for x, y in pos])
             except IndexError:
@@ -256,7 +250,7 @@ class Collision:
 
         elif action_space[move] == 'right':
             pos = piece.current_position()
-            
+
             try:
                 return all([self.field[y + BOUNDARY][x + BOUNDARY + 1] == 0 for x, y in pos])
             except IndexError:
@@ -265,7 +259,7 @@ class Collision:
 
         elif action_space[move] == 'left':
             pos = piece.current_position()
-            
+
             try:
                 return all([self.field[y + BOUNDARY][x + BOUNDARY - 1] == 0 for x, y in pos])
             except IndexError:
@@ -421,12 +415,7 @@ class Piece_Gne:
 
         popped = self.pop(buffer, rng)
 
-        if str_pieces[popped] in 'I,O'.split(','):
-            piece_obj = Piece(4, 0, popped)
-            return piece_obj
-        else:
-            piece_obj = Piece(4, 0, popped)
-            return piece_obj
+        return Piece(4, 1, popped)
 
 
 def get_rotation_cords(srs, dir, piece):
@@ -698,14 +687,11 @@ class Tetris:
 
         moves = t_x - cu_x
         if t_x > cu_x:
-            for _ in range(abs(moves)):
+            for _ in range(moves):
                 self.make_move(pygame.K_RIGHT)
         else:
-            for _ in range(abs(moves)):
+            for _ in range(moves):
                 self.make_move(pygame.K_LEFT)
-"""
-        while valid_space(self.current_piece, self.grid):
-            self.current_piece.y += 5"""
 
         # self.make_move(pygame.K_TAB)
 

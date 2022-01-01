@@ -23,11 +23,6 @@ class AI_Agent:
         self.neural_network = None
 
     def get_possible_configurations(self):
-        # need to change this a bit so it works for every single piece
-        """
-        These make up the nodes in the graph for A*
-        """
-
         positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if ind_x != 0 or ind_x != 1] for ind_x in range(self.rows)]
         all_positions = [tupl for li in positions for tupl in li]
 
@@ -42,18 +37,17 @@ class AI_Agent:
                     data_obj.rot_index = index
                     ascii_cords = data_obj.get_data()  # exp: [(0, 1), (0, 2), (1, 2), (1, 3)]
 
-                    lowest_block = sorted(ascii_cords, key=lambda cord: cord[1])[-1]  # lowest hanging piece based on y
+                    lowest_block = max(ascii_cords, key=lambda cord: cord[1])  # lowest hanging piece based on y
 
                     lo_x, lo_y = lowest_block
                     # get relative cords to lowest block
                     for x, y in ascii_cords:
-                        relative_cords.append((lo_x - x, lo_y - y))
+                        relative_cords.append((x - lo_x, y - lo_y))
 
                     final_global_cords = [(x + pos_x, y + pos_y) for x, y in relative_cords]
 
                     # check validity of rotation states
                     if all([cord in all_positions for cord in final_global_cords]):
-                        # if all([(x+pos_x, y+y_above) in all_positions for x, y in relative_cords for y_above in range(2, pos_y)]):
                         all_configurations[(pos_x, pos_y)].append((index, final_global_cords))
 
                 # remove position from all configurations list if it yields an empty list i.e no configurations are
@@ -68,6 +62,8 @@ class AI_Agent:
         for row in range(self.rows):
             if self.field[row][column] == 1:
                 return row - 1
+            else:
+                continue
 
         return self.rows - 1
 
@@ -113,36 +109,49 @@ class AI_Agent:
         self.final_positions = {}
         for cord in self.all_configurations:
             if cord in self.final_cords:
-                self.final_positions[cord] = self.all_configurations.get(cord)
+                self.final_positions[cord] = self.all_configurations[cord]
 
     def evaluation_function(self, current_piece):
+        best_move_per_column = {}
         if len(self.final_positions) != 0:
-            field = self.field.copy()
             score_move_per_column = {}
 
             for cord, positions in self.final_positions.items():
-
+                score_move_per_column[cord] = []
                 for index, pos in positions:  # first part is the rotation index, second part are the positions
+                    field = self.field.copy()
+
+                    # fill in block positions in test field
                     for x, y in pos:
                         field[y][x] = 1
 
+                    # pass that as the field to be used to get heuristics
                     self.heuris.update_field(field)
 
+                    # access info from heuristics file
                     possible_reward = self.heuris.get_reward()
                     board_state = self.heuris.get_heuristics()
+
+                    # get piece mapping
+                    mapping = self.get_piece_mapping(current_piece)
+
+                    # prepare full board state
+                    full_board_state = mapping + board_state
+
                     # get score from nueral net
-                    move_score = self.neural_network.activate(board_state)
+                    move_score = self.neural_network.activate(full_board_state)[0]
 
-                    # reset field, and update heuristics field
-                    for x, y in pos:
-                        field[y][x] = 0
+                    # re-update with initial field!! IMPORTANT!!
+                    self.heuris.update_field(self.field)
 
-                    self.heuris.update_field(field)
-
-                    score_move_per_column[cord] = index, cord, pos, possible_reward, move_score
+                    score_move_per_column[cord].append((index, cord, pos, possible_reward, move_score))
+           
+            # find best move per column
+            for cord, positions in score_move_per_column.items():
+                best_move_per_column[cord] = max(positions, key = lambda x : x[-1])
 
             # go through each move per column score and choose highest scoring move
-            best_move = max(score_move_per_column.items(), key= lambda pair: pair[1][4])[1]
+            best_move = max(best_move_per_column.items(), key= lambda pair: pair[1][-1])[1]
 
             self.best_move = best_move[:-1]
 

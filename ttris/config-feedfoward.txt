@@ -1,7 +1,7 @@
 [NEAT]
 fitness_criterion     = max
-fitness_threshold     = 800
-pop_size              = 300
+fitness_threshold     = 20000
+pop_size              = 500
 reset_on_extinction   = False
 
 [DefaultGenome]
@@ -37,7 +37,9 @@ enabled_default         = True
 enabled_mutate_rate     = 0.01
 
 feed_forward            = True
+#True
 initial_connection      = full
+#full
 
 # node add/remove rates
 node_add_prob           = 0.2
@@ -45,7 +47,7 @@ node_delete_prob        = 0.2
 
 # network parameters
 num_hidden              = 0
-num_inputs              = 7
+num_inputs              = 214
 num_outputs             = 1
 
 # node response options
@@ -76,4 +78,4 @@ species_elitism      = 2
 
 [DefaultReproduction]
 elitism            = 2
-survival_threshold = 0.2
+survival_threshold = 0.3

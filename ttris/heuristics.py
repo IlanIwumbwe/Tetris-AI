@@ -108,7 +108,19 @@ class Heuristics:
             print(f'{i} \n')
 
     def get_heuristics(self):
-        return [self.aggr_height(), self.total_holes(), self.bumpiness(), self.std_heights(), self.pits(), self.deepest_well(), self.lines_cleared()]
+        grid_data = self.empty()
+        return grid_data + [self.aggr_height(), self.total_holes(), self.bumpiness(), self.std_heights(), self.pits(), self.deepest_well(), self.lines_cleared()]
+
+    def empty(self):
+        em = [0 for _ in range(200)]
+
+        for ind_y in range(self.height-2):
+            for ind_x in range(self.width):
+                if self.field[ind_y][ind_x] == 1:
+                    ind = 10*ind_y + ind_x
+                    em[ind] = 1
+
+        return em
 
     def get_reward(self):
         return sum([self.aggr_height()*-500, self.total_holes()*-250, self.bumpiness()*-300, self.std_heights()*-500, self.pits()*30, self.deepest_well()*30, self.lines_cleared()*6000])

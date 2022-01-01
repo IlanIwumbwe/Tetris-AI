@@ -629,7 +629,7 @@ class Tetris:
             self.run = False
 
     def reward_info(self):
-        return self.best_move[3] + self.score*10
+        return self.score*10 + self.lines*1000 # +self.best_move[3]
 
     def make_move(self, move):
         if action_space[move] == 'down':

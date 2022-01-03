@@ -190,7 +190,7 @@ class Piece:
                 self.state = ''.join(new_str)
 
     def current_position(self):  # get grid positions of a passed piece object
-        lowest_block = sorted(self.state_cords, key=lambda x: x[1])[-1]
+        lowest_block = max(self.state_cords, key=lambda x: x[1])
 
         l_x, l_y = lowest_block
 

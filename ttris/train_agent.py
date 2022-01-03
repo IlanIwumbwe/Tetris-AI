@@ -3,7 +3,7 @@ import heuristics as hu
 import data
 import neat
 import pickle
-from model import Population, LinearNet
+from model import Population
 
 class AI_Agent:
     def __init__(self, rows, columns):  # piece is an object
@@ -137,10 +137,10 @@ class AI_Agent:
                     mapping = self.get_piece_mapping(current_piece)
 
                     # prepare full board state
-                    full_board_state = board_state
+                    full_board_state = mapping + board_state
 
                     # get score from nueral net
-                    move_score = self.neural_network(full_board_state)[0]
+                    move_score = self.neural_network.activate(full_board_state)[0]
 
                     # re-update with initial field!! IMPORTANT!!
                     self.heuris.update_field(self.field)
@@ -176,64 +176,46 @@ class AI_Agent:
         for i in self.field:
             print(i)
 
-epochs = 100
 class Trainer:
     def __init__(self):
         self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
         self.agent.get_possible_configurations()
-        self.old_population = None
-        self.new_population = None
-        self.best_fitness = 0
 
-    def eval_genomes(self):
-        for epoch in range(epochs):
-            print(f'Epoch: {epoch}')
-            print('========================================')
-            self.new_population = Population(150, self.old_population)
+    def eval_genomes(self, genomes, config):
+        for genome_id, genome in genomes:
+            current_fitness = 0
+            tetris_game = tetris_ai.Tetris()
 
-            for nueral_net in range(self.new_population.size):
-                print(f'Neural net at index {nueral_net}')
-                current_fitness = 0
-                tetris_game = tetris_ai.Tetris()
+            self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
+            self.agent.get_possible_configurations()
+            self.agent.neural_network = neat.nn.FeedForwardNetwork.create(genome, config)
 
-                self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
-                self.agent.get_possible_configurations()
-                self.agent.neural_network = self.new_population.models[nueral_net]
+            while tetris_game.run:
+                self.agent.landed = tetris_game.landed
 
-                while tetris_game.run:
-                    self.agent.landed = tetris_game.landed
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
+                tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
 
-                    # update the agent with useful info to find the best move
-                    self.agent.update_agent(tetris_game.current_piece)
-                    tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
+                tetris_game.game_logic()
 
-                    tetris_game.game_logic()
+                # make the move
+                tetris_game.make_ai_move()
 
-                    # make the move
-                    tetris_game.make_ai_move()
+                current_fitness += tetris_game.reward_info()
 
-                    current_fitness += tetris_game.reward_info()
+                self.agent.landed = tetris_game.landed
 
-                    self.agent.landed = tetris_game.landed
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
 
-                    # update the agent with useful info to find the best move
-                    self.agent.update_agent(tetris_game.current_piece)
+                if tetris_game.change_piece:
+                    tetris_game.change_state()
 
-                    if tetris_game.change_piece:
-                        tetris_game.change_state()
-
-                    if not tetris_game.run:
-                        self.new_population.fitnesses[nueral_net] = current_fitness
-
-                        if current_fitness > self.best_fitness:
-                            self.best_fitness = current_fitness
-                            self.agent.neural_network.save()
-
-                        print(f'Nueral net fitness: {current_fitness}, Record: {self.best_fitness}')
-                        print('==========================================')
-                        # reset to a new tetris game, and reset the agent as well
-                        break
-            self.old_population = self.new_population
+                if not tetris_game.run:
+                    genome.fitness = current_fitness
+                    # reset to a new tetris game, and reset the agent as well
+                    break
 
     def train(self):
         config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
@@ -254,6 +236,6 @@ class Trainer:
 if __name__ == '__main__':
     trainer = Trainer()
 
-    trainer.eval_genomes()
+    trainer.train()
 
 

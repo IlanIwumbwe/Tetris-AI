@@ -288,6 +288,15 @@ class Board:
         return GRID
 
     @staticmethod
+    def show_best_move(grid, best_move):
+        if best_move:
+            for x, y in best_move[2]:
+                try:
+                    grid[y][x] = (100, 100, 100)
+                except IndexError:
+                    print('Problem')
+
+    @staticmethod
     def show_held_piece(surface, held_piece):
         pos_x = top_left_x + play_w - 100
         pos_y = top_left_y
@@ -599,6 +608,9 @@ class Tetris:
                         # print('wef')
                         self.run = False
 
+        # show the best move
+        self.board.show_best_move(self.grid, self.best_move)
+
         '''
         user wants to hold piece, store it in held piece, change current to next,
         generate new piece to replace next piece
@@ -629,7 +641,7 @@ class Tetris:
             self.run = False
 
     def reward_info(self):
-        return self.score*10 + self.lines*1000 # +self.best_move[3]
+        return self.score*10 + self.lines*1000
 
     def make_move(self, move):
         if action_space[move] == 'down':
@@ -686,14 +698,15 @@ class Tetris:
             self.make_move(pygame.K_w)
 
         moves = t_x - cu_x
+
         if t_x > cu_x:
-            for _ in range(moves):
+            for _ in range(abs(moves)):
                 self.make_move(pygame.K_RIGHT)
         else:
-            for _ in range(moves):
+            for _ in range(abs(moves)):
                 self.make_move(pygame.K_LEFT)
 
-        # self.make_move(pygame.K_TAB)
+        #self.make_move(pygame.K_TAB)
 
 
 

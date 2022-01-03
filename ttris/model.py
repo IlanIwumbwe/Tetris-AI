@@ -1,20 +1,31 @@
 import torch
 from torch.nn import functional as F
 import torch.nn as nn
-import torch.optim as optim
+import numpy as np
 import os
 
-class LinearQNet(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super().__init__()
-        self.input_hidden = nn.Linear(input_size, hidden_size)
-        self.hidden_output = nn.Linear(hidden_size, output_size)
+input_size = 7
+output_size = 1
+weights_min = -1
+weights_max = 1
 
-    def forward(self, input):
-        to_hidden = F.relu(self.input_hidden(input))
-        to_output = self.hidden_output(to_hidden)
+device = 'cpu'
 
-        return to_output
+class LinearNet(nn.Module):
+    def __init__(self, output_w=None):
+        super(LinearNet, self).__init__()
+        if not output_w:
+            self.fc2 = nn.Linear(input_size, output_size, bias=False).to(device)
+            self.fc2.weight.requires_grad_(False)
+            torch.nn.init.uniform_(self.fc2.weight, weights_min, weights_max)
+        else:
+            self.fc2 = output_w
+
+    def forward(self, x):
+        with torch.no_grad():
+            x = torch.from_numpy(x).float().to(device)
+            x = self.fc2(x)
+        return x
 
     def save(self, file_name='model.pth'):
         model_folder_path = './model'
@@ -25,64 +36,67 @@ class LinearQNet(nn.Module):
         file_name = os.path.join(model_folder_path, file_name)
         torch.save(self.state_dict(), file_name)
 
+# genetic algorithm
+mutation_prob = 0.3
+elitism = 0.2
+mutation_power= 0.4
 
-class Trainer:
-    def __init__(self, model, learning_rate, gamma):
-        self.model = model
-        self.lr = learning_rate
-        self.gamma = gamma
-        self.optimizer = optim.Adam(model.parameters(), lr = self.lr)
-        self.criterion = nn.MSELoss()
+class Population:
+    def __init__(self, size=150, old_population=None):
+        self.size = size
+        self.fitnesses = np.zeros(self.size)
+        # at the start of the game, there's no old population
+        if old_population is None:
+            # set up population of nueral nets
+            self.models = [LinearNet() for _ in range(size)]
+        else:
+            # get all nueral nets from previous iteration
+            self.old_models = old_population.models
+            self.old_fitnesses = old_population.fitnesses
+            # setup models for this iteration, will fill list in mutation and crossover phase
+            self.models = []
+            self.crossover()
+            self.mutate()
 
-    def train_step(self, old_state, action, reward, new_state, done):
-        # check whether each parameter is multiple values or a single value
-        old_state = torch.tensor(old_state, dtype=torch.float)
-        action = torch.tensor(action, dtype=torch.long)
-        reward = torch.tensor(reward, dtype=torch.float)
-        new_state = torch.tensor(new_state, dtype=torch.float)
 
-        # if multiple values, it is in the form (n, param), n is number of batches
+    def crossover(self):
+        print('Crossover Process')
+        # setup higher probabilities for higher performing neural nets
+        sum_of_fitnesses = np.sum(self.old_fitnesses)
+        probs = [self.old_fitnesses[i]/sum_of_fitnesses for i in range(self.size)]
 
-        if len(old_state.shape) == 1:
-            # it is a single value, in the form (1, state)
-            old_state = torch.unsqueeze(old_state, 0)
-            action = torch.unsqueeze(action, 0)
-            reward = torch.unsqueeze(reward, 0)
-            new_state = torch.unsqueeze(new_state, 0)
-            done = (done, )
-
-        # Q values for each batch from the old state
-        prediction = self.model(old_state)
-
-        target = prediction.clone()
-        # refine Q values using bellman equation if not done
-
-        for index in range(len(done)): # for each batch
-            if not done[index]:
-                """
-                # if this batch(game) isn't done
-                # use Bellman equation to find new Q-value
-                
-                new Q val = current reward from this batch + discount rate * max possible reward from next state
-                """
-                Q_new = reward[index] + self.gamma * torch.max(self.model(new_state[index]))
-
+        # sort by order of fitness (descending)
+        fitness_indices = np.argsort(probs)[::-1]
+        for i in range(self.size):
+            if i < self.size*elitism:
+                model_c = self.old_models[fitness_indices[i]]
             else:
-                # if done, new Q val is reward from this game(batch)
-                Q_new = reward[index]
-            # set up target value, where it is trying to maximise Q val
+                # select 2 best performing fitness indices using probs
+                a, b = np.random.choice(self.size, size=2, p=probs, replace=False)
 
-            try:
-                target[index][torch.argmax(action).item()] = Q_new
-            except IndexError:
-                pass
-            # apply loss function, then back-propagate
+                # setup models from those indices
+                model_a, model_b = self.old_models[a], self.old_models[b]
+                model_c = LinearNet()
 
-        self.optimizer.zero_grad()
-        loss = self.criterion(target, prediction)
-        loss.backward()
+                prob_from_a = 0.5
 
-        self.optimizer.step()
+                for j in range(input_size):
+                    # perform cross-over process
+                    if np.random.random() > prob_from_a:
+                        model_c.fc2.weight.data[0][j] = model_b.fc2.weight.data[0][j]
+                    else:
+                        model_c.fc2.weight.data[0][j] = model_a.fc2.weight.data[0][j]
+
+            # add new object to population
+            self.models.append(model_c)
+
+    def mutate(self):
+        print('Mutation Process')
+        for model in self.models:
+            for i in range(input_size):
+                if np.random.random() > mutation_prob:
+                    noise = torch.randn(1).mul(mutation_power).to(device)
+                    model.fc2.weight.data[0][i].add(noise[0])
 
 
 

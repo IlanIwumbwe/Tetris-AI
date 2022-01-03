@@ -3,6 +3,7 @@ import heuristics as hu
 import data
 import neat
 import pickle
+from model import Population, LinearNet
 
 class AI_Agent:
     def __init__(self, rows, columns):  # piece is an object
@@ -136,21 +137,25 @@ class AI_Agent:
                     mapping = self.get_piece_mapping(current_piece)
 
                     # prepare full board state
-                    full_board_state = mapping + board_state
+                    full_board_state = board_state
 
                     # get score from nueral net
-                    move_score = self.neural_network.activate(full_board_state)[0]
+                    move_score = self.neural_network(full_board_state)[0]
 
                     # re-update with initial field!! IMPORTANT!!
                     self.heuris.update_field(self.field)
 
-                    score_move_per_column[cord].append((index, cord, pos, possible_reward, move_score))
-           
+                    # check all positions above the piece, make sure they are empty, otherwise it is physically impossible for them to be there
+                    if all([self.field[y_above][fin_x] == 0 for fin_x, fin_y in pos for y_above in range(fin_y) if (fin_x, y_above) not in pos]):
+                        score_move_per_column[cord].append((index, cord, pos, possible_reward, move_score))
+
             # find best move per column
             for cord, positions in score_move_per_column.items():
-                best_move_per_column[cord] = max(positions, key = lambda x : x[-1])
+                if len(positions) != 0:
+                    best_move_per_column[cord] = max(positions, key = lambda x : x[-1])
 
             # go through each move per column score and choose highest scoring move
+
             best_move = max(best_move_per_column.items(), key= lambda pair: pair[1][-1])[1]
 
             self.best_move = best_move[:-1]
@@ -160,7 +165,6 @@ class AI_Agent:
 
     def get_best_move(self, current_piece):
         final_cords = [(col, self.final_y(col)) for col in range(self.columns)]
-
         self.set_final_cords(final_cords)
         self.set_final_positions()
 
@@ -172,46 +176,64 @@ class AI_Agent:
         for i in self.field:
             print(i)
 
+epochs = 100
 class Trainer:
     def __init__(self):
         self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
         self.agent.get_possible_configurations()
+        self.old_population = None
+        self.new_population = None
+        self.best_fitness = 0
 
-    def eval_genomes(self, genomes, config):
-        for genome_id, genome in genomes:
-            current_fitness = 0
-            tetris_game = tetris_ai.Tetris()
+    def eval_genomes(self):
+        for epoch in range(epochs):
+            print(f'Epoch: {epoch}')
+            print('========================================')
+            self.new_population = Population(150, self.old_population)
 
-            self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
-            self.agent.get_possible_configurations()
-            self.agent.neural_network = neat.nn.FeedForwardNetwork.create(genome, config)
+            for nueral_net in range(self.new_population.size):
+                print(f'Neural net at index {nueral_net}')
+                current_fitness = 0
+                tetris_game = tetris_ai.Tetris()
 
-            while tetris_game.run:
-                self.agent.landed = tetris_game.landed
+                self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
+                self.agent.get_possible_configurations()
+                self.agent.neural_network = self.new_population.models[nueral_net]
 
-                # update the agent with useful info to find the best move
-                self.agent.update_agent(tetris_game.current_piece)
-                tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
+                while tetris_game.run:
+                    self.agent.landed = tetris_game.landed
 
-                tetris_game.game_logic()
+                    # update the agent with useful info to find the best move
+                    self.agent.update_agent(tetris_game.current_piece)
+                    tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
 
-                # make the move
-                tetris_game.make_ai_move()
+                    tetris_game.game_logic()
 
-                current_fitness += tetris_game.reward_info()
+                    # make the move
+                    tetris_game.make_ai_move()
 
-                self.agent.landed = tetris_game.landed
+                    current_fitness += tetris_game.reward_info()
 
-                # update the agent with useful info to find the best move
-                self.agent.update_agent(tetris_game.current_piece)
+                    self.agent.landed = tetris_game.landed
 
-                if tetris_game.change_piece:
-                    tetris_game.change_state()
+                    # update the agent with useful info to find the best move
+                    self.agent.update_agent(tetris_game.current_piece)
 
-                if not tetris_game.run:
-                    genome.fitness = current_fitness
-                    # reset to a new tetris game, and reset the agent as well
-                    break
+                    if tetris_game.change_piece:
+                        tetris_game.change_state()
+
+                    if not tetris_game.run:
+                        self.new_population.fitnesses[nueral_net] = current_fitness
+
+                        if current_fitness > self.best_fitness:
+                            self.best_fitness = current_fitness
+                            self.agent.neural_network.save()
+
+                        print(f'Nueral net fitness: {current_fitness}, Record: {self.best_fitness}')
+                        print('==========================================')
+                        # reset to a new tetris game, and reset the agent as well
+                        break
+            self.old_population = self.new_population
 
     def train(self):
         config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
@@ -232,6 +254,6 @@ class Trainer:
 if __name__ == '__main__':
     trainer = Trainer()
 
-    trainer.train()
+    trainer.eval_genomes()
 
 

@@ -48,11 +48,22 @@ ANTICLOCKWISE_MATRIX = [[0, -1], [1, 0]]
 
 pieces = [I, S, O, Z, T, L, J]
 str_pieces = {I: 'I', S: 'S', O: 'O', Z: 'Z', T: 'T', L: 'L', J: 'J'}
-
 centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}
 
-colours = {I: (51, 255, 255), S: (255, 255, 100), O: (255, 51, 255), Z: (0, 0, 255), T: (255, 128, 0), L: (51, 255, 51),
-           J: (255, 0, 0)}
+CYAN = (51, 255, 255)
+BLUE = (255, 255, 100)
+PINK = (255, 51, 255)
+YELLOW = (0, 0, 255)
+ORANGE = (255, 128, 0)
+RED = (255, 0, 0)
+GREEN = (51, 255, 51)
+WHITE = (255, 255, 255)
+GREY = (100, 100, 100)
+BLACK = (0, 0, 0)
+SPAWN_ROWS = (50, 100, 255)
+BG = (128, 128, 128)
+
+colours = {I: CYAN, S: BLUE, O: PINK, Z: YELLOW, T: ORANGE, L: GREEN, J: RED}
 
 action_space = {pygame.K_DOWN: 'down', pygame.K_RIGHT: 'right', pygame.K_LEFT: 'left', pygame.K_UP: 'cw',
                 pygame.K_w: 'ccw', pygame.K_TAB: 'hd', pygame.K_SPACE: 'hold', pygame.K_BACKSPACE: 'unhold'}
@@ -82,7 +93,7 @@ mixer.music.play(-1)
 
 def valid_space(piece, grid):  # piece is an object
     # valid positions if they're blank
-    positions = [[(j, i) for j in range(COLUMNS) if grid[i][j] == (255, 255, 255)] for i in range(ROWS)]
+    positions = [[(j, i) for j in range(COLUMNS) if grid[i][j] == WHITE] for i in range(ROWS)]
     valid_positions = [tupl for pos in positions for tupl in pos]  # flatten
     x_pos = piece.current_position()
 
@@ -196,13 +207,12 @@ class Collision:
                         [(row, col) for col in range(11, 12) for row in range(24)] + \
                         [(row, col) for col in range(12) for row in range(23, 24)]
         self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
-        self.landed = {}
 
     def create_field(self, landed):
         self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
         # create landed positions
         if landed != {}:
-            for (x, y) in self.landed.keys():
+            for (x, y) in landed.keys():
                 try:
                     self.field[y+BOUNDARY][x+BOUNDARY] = 1
                 except IndexError:
@@ -268,6 +278,11 @@ class Collision:
 
         return True
 
+    def print_f(self):
+        for i in self.field:
+            print()
+            print(i)
+
 
 class Board:
     def __init__(self, landed, lines, score):
@@ -278,7 +293,7 @@ class Board:
 
     def create_grid(self):
         # if you want to change colour of grid, change _____ to desired colour! (except tetromino colour)
-        GRID = [[(255, 255, 255) for column in range(COLUMNS)] for row in range(ROWS)]
+        GRID = [[WHITE for column in range(COLUMNS)] for row in range(ROWS)]
 
         for i in range(ROWS):
             for j in range(COLUMNS):
@@ -292,7 +307,7 @@ class Board:
         if best_move:
             for x, y in best_move[2]:
                 try:
-                    grid[y][x] = (100, 100, 100)
+                    grid[y][x] = GREY
                 except IndexError:
                     print('Problem')
 
@@ -312,7 +327,7 @@ class Board:
                 if column == 'x':
                     pygame.draw.rect(surface, held_piece.colour, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 0)
-                    pygame.draw.rect(surface, (0, 0, 0), (
+                    pygame.draw.rect(surface, BLACK, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 2)
 
     @staticmethod
@@ -331,7 +346,7 @@ class Board:
                 if column == 'x':
                     pygame.draw.rect(surface, next_piece.colour, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 0)
-                    pygame.draw.rect(surface, (0, 0, 0), (
+                    pygame.draw.rect(surface, BLACK, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 2)
 
     @staticmethod
@@ -339,10 +354,10 @@ class Board:
         # boundary
         for i in range(ROWS + BOUNDARY + 1):
             for j in range(COLUMNS + BOUNDARY + 1):
-                pygame.draw.rect(surface, (100, 100, 100), (top_left_x - (BOUNDARY * block_size) + j * block_size,
+                pygame.draw.rect(surface, GREY, (top_left_x - (BOUNDARY * block_size) + j * block_size,
                                                             top_left_y - (BOUNDARY * block_size) + i * block_size,
                                                             block_size, block_size), 0)
-                pygame.draw.rect(surface, (0, 0, 0), (top_left_x - (BOUNDARY * block_size) + j * block_size,
+                pygame.draw.rect(surface, BLACK, (top_left_x - (BOUNDARY * block_size) + j * block_size,
                                                       top_left_y - (BOUNDARY * block_size) + i * block_size, block_size,
                                                       block_size), 2)
 
@@ -356,14 +371,14 @@ class Board:
         for i in range(ROWS):
             for j in range(COLUMNS):
                 if i == 0 or i == 1:  # first 2 rows are for spawing
-                    pygame.draw.rect(surface, (50, 100, 255),
+                    pygame.draw.rect(surface, SPAWN_ROWS,
                                      (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size),
                                      0)
-                    pygame.draw.rect(surface, (255, 255, 255),
+                    pygame.draw.rect(surface, WHITE,
                                      (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size),
                                      2)
-                if grid[i][j] != (255, 255, 255):
-                    pygame.draw.rect(surface, (0, 0, 0),
+                if grid[i][j] != WHITE:
+                    pygame.draw.rect(surface, BLACK,
                                      (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size),
                                      2)
 
@@ -372,7 +387,7 @@ class Board:
         cleared_rows = 0
 
         for index in range(ROWS - 1, -1, -1):
-            if (255, 255, 255) not in grid[index]:
+            if WHITE not in grid[index]:
                 cleared_rows += 1
                 cleared_row = index
                 for column in range(COLUMNS):
@@ -437,7 +452,7 @@ def get_rotation_cords(srs, dir, piece):
 
         grid_cords = [((l_x - x) + piece.x, (l_y - y) + piece.y) for x, y in data_for_I]
     else:
-        ascii_cords = srs.rotation(True, piece.piece) if dir == 'cw' else srs.rotation(False, piece.piece)
+        ascii_cords = srs.rotation(True, piece.state) if dir == 'cw' else srs.rotation(False, piece.state)
         lowest_block = sorted(ascii_cords, key=lambda x: x[1])[-1]
 
         l_x, l_y = lowest_block
@@ -567,7 +582,7 @@ class Tetris:
 
         self.current_piece = self.next_piece
 
-        if [(255, 255, 255)] * 10 == self.grid[1] and [(255, 255, 255)] * 10 == self.grid[0]:
+        if [WHITE] * 10 == self.grid[1] and [WHITE] * 10 == self.grid[0]:
             self.next_piece = self.generate.get_piece()
             self.change_piece = False
 
@@ -587,7 +602,7 @@ class Tetris:
                 self.board.score += 1
                 self.change_piece = True
 
-        self.win.fill((128, 128, 128))
+        self.win.fill(BG)
 
         pygame.display.set_caption('Tetris')
 

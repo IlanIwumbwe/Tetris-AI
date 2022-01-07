@@ -4,6 +4,7 @@ from pygame import mixer
 from itertools import permutations
 import data
 import numpy as np
+import time
 
 # game assets
 
@@ -47,11 +48,22 @@ ANTICLOCKWISE_MATRIX = [[0, -1], [1, 0]]
 
 pieces = [I, S, O, Z, T, L, J]
 str_pieces = {I: 'I', S: 'S', O: 'O', Z: 'Z', T: 'T', L: 'L', J: 'J'}
+centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}
 
-centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}  # some fixes  # 1,2 I , L , J
+CYAN = (51, 255, 255)
+BLUE = (255, 255, 100)
+PINK = (255, 51, 255)
+YELLOW = (0, 0, 255)
+ORANGE = (255, 128, 0)
+RED = (255, 0, 0)
+GREEN = (51, 255, 51)
+WHITE = (255, 255, 255)
+GREY = (100, 100, 100)
+BLACK = (0, 0, 0)
+SPAWN_ROWS = (100, 140, 40) #(50, 100, 255)
+BG = (128, 128, 128)
 
-colours = {I: (51, 255, 255), S: (255, 255, 100), O: (255, 51, 255), Z: (0, 0, 255), T: (255, 128, 0), L: (51, 255, 51),
-           J: (255, 0, 0)}
+colours = {I: CYAN, S: BLUE, O: PINK, Z: YELLOW, T: ORANGE, L: GREEN, J: RED}
 
 action_space = {pygame.K_DOWN: 'down', pygame.K_RIGHT: 'right', pygame.K_LEFT: 'left', pygame.K_UP: 'cw',
                 pygame.K_w: 'ccw', pygame.K_TAB: 'hd', pygame.K_SPACE: 'hold', pygame.K_BACKSPACE: 'unhold'}
@@ -79,10 +91,9 @@ mixer.music.load('tetris-gameboy-02.ogg')
 mixer.music.play(-1)
 """
 
-
 def valid_space(piece, grid):  # piece is an object
     # valid positions if they're blank
-    positions = [[(j, i) for j in range(COLUMNS) if grid[i][j] == (255, 255, 255)] for i in range(ROWS)]
+    positions = [[(j, i) for j in range(COLUMNS) if grid[i][j] == WHITE] for i in range(ROWS)]
     valid_positions = [tupl for pos in positions for tupl in pos]  # flatten
     x_pos = piece.current_position()
 
@@ -135,6 +146,7 @@ class SRS:
 
         return new_global_cords
 
+
 class Piece:
     def __init__(self, x=None, y=None, piece=None):
         self.x = x
@@ -146,7 +158,6 @@ class Piece:
         self.clockwise = None
         self.all = [(j, i) for i in range(4) for j in range(4)]
         self.centre = centres[self.piece]
-        self.test_state = None
         self.str_id = str_pieces[self.piece]
         self.state_cords = data.Data(self.str_id, 0).get_data()
 
@@ -155,31 +166,31 @@ class Piece:
         srs = SRS(self)
         new_str = ['.' for _ in range(16)]
 
-        if len(self.state_cords) != 0:
-            if self.str_id != 'I':
-                if dir == 'cw':
-                    self.clockwise = True
-                else:
-                    self.clockwise = False
 
-                self.state_cords = srs.rotation(self.clockwise, self.state)
-
-                for x, y in self.state_cords:
-                    ind = 4 * y + x
-                    new_str[ind] = 'x'
-
-                self.state = ''.join(new_str)
+        if self.str_id != 'I':
+            if dir == 'cw':
+                self.clockwise = True
             else:
-                self.state_cords = rotation_data_for_I
+                self.clockwise = False
 
-                for x, y in self.state_cords:
-                    ind = 4 * y + x
-                    new_str[ind] = 'x'
+            self.state_cords = srs.rotation(self.clockwise, self.state)
 
-                self.state = ''.join(new_str)
+            for x, y in self.state_cords:
+                ind = 4*y + x
+                new_str[ind] = 'x'
+
+            self.state = ''.join(new_str)
+        else:
+            self.state_cords = rotation_data_for_I
+
+            for x, y in self.state_cords:
+                ind = 4 * y + x
+                new_str[ind] = 'x'
+
+            self.state = ''.join(new_str)
 
     def current_position(self):  # get grid positions of a passed piece object
-        lowest_block = sorted(self.state_cords, key=lambda x: x[1])[-1]
+        lowest_block = max(self.state_cords, key=lambda x: x[1])
 
         l_x, l_y = lowest_block
 
@@ -189,7 +200,6 @@ class Piece:
     def get_config(self):
         return self.rot_index, (self.x, self.y), self.current_position(), 0
 
-
 class Collision:
     def __init__(self):  # piece is an object
         self.boundary = [(row, col) for col in range(1) for row in range(24)] + \
@@ -197,13 +207,12 @@ class Collision:
                         [(row, col) for col in range(11, 12) for row in range(24)] + \
                         [(row, col) for col in range(12) for row in range(23, 24)]
         self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
-        self.landed = {}
 
     def create_field(self, landed):
         self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
         # create landed positions
         if landed != {}:
-            for (x, y) in self.landed.keys():
+            for (x, y) in landed.keys():
                 try:
                     self.field[y+BOUNDARY][x+BOUNDARY] = 1
                 except IndexError:
@@ -224,30 +233,55 @@ class Collision:
             piece.rot_index = Mod(piece.rot_index + 1, 4)
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
-            return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
+            try:
+                return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
+            except IndexError:
+                print('Will try again')
+                pass
 
         elif action_space[move] == 'ccw':
             piece.rot_index = Mod(piece.rot_index - 1, 4)
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
-            return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
+            try:
+                return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
+            except IndexError:
+                print('Will try again')
+                pass
 
         elif action_space[move] == 'down':
             pos = piece.current_position()
 
-            return all([self.field[y + BOUNDARY + 1][x + BOUNDARY] == 0 for x, y in pos])
+            try:
+                return all([self.field[y + BOUNDARY + 1][x + BOUNDARY] == 0 for x, y in pos])
+            except IndexError:
+                print('WIll try again')
+                pass
 
         elif action_space[move] == 'right':
             pos = piece.current_position()
 
-            return all([self.field[y + BOUNDARY][x + BOUNDARY + 1] == 0 for x, y in pos])
+            try:
+                return all([self.field[y + BOUNDARY][x + BOUNDARY + 1] == 0 for x, y in pos])
+            except IndexError:
+                print('Will try again')
+                pass
 
         elif action_space[move] == 'left':
             pos = piece.current_position()
 
-            return all([self.field[y + BOUNDARY][x + BOUNDARY - 1] == 0 for x, y in pos])
+            try:
+                return all([self.field[y + BOUNDARY][x + BOUNDARY - 1] == 0 for x, y in pos])
+            except IndexError:
+                print('Will try again')
+                pass
 
         return True
+
+    def print_f(self):
+        for i in self.field:
+            print()
+            print(i)
 
 
 class Board:
@@ -259,7 +293,7 @@ class Board:
 
     def create_grid(self):
         # if you want to change colour of grid, change _____ to desired colour! (except tetromino colour)
-        GRID = [[(255, 255, 255) for column in range(COLUMNS)] for row in range(ROWS)]
+        GRID = [[WHITE for column in range(COLUMNS)] for row in range(ROWS)]
 
         for i in range(ROWS):
             for j in range(COLUMNS):
@@ -267,6 +301,15 @@ class Board:
                     # set colour if position is landed i.e there is a piece there
                     GRID[i][j] = self.landed[(j, i)]
         return GRID
+
+    @staticmethod
+    def show_best_move(grid, best_move):
+        if best_move:
+            for x, y in best_move[2]:
+                try:
+                    grid[y][x] = GREY
+                except IndexError:
+                    print('Problem')
 
     @staticmethod
     def show_held_piece(surface, held_piece):
@@ -284,7 +327,7 @@ class Board:
                 if column == 'x':
                     pygame.draw.rect(surface, held_piece.colour, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 0)
-                    pygame.draw.rect(surface, (0, 0, 0), (
+                    pygame.draw.rect(surface, BLACK, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 2)
 
     @staticmethod
@@ -303,7 +346,7 @@ class Board:
                 if column == 'x':
                     pygame.draw.rect(surface, next_piece.colour, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 0)
-                    pygame.draw.rect(surface, (0, 0, 0), (
+                    pygame.draw.rect(surface, BLACK, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 2)
 
     @staticmethod
@@ -311,10 +354,10 @@ class Board:
         # boundary
         for i in range(ROWS + BOUNDARY + 1):
             for j in range(COLUMNS + BOUNDARY + 1):
-                pygame.draw.rect(surface, (100, 100, 100), (top_left_x - (BOUNDARY * block_size) + j * block_size,
+                pygame.draw.rect(surface, GREY, (top_left_x - (BOUNDARY * block_size) + j * block_size,
                                                             top_left_y - (BOUNDARY * block_size) + i * block_size,
                                                             block_size, block_size), 0)
-                pygame.draw.rect(surface, (0, 0, 0), (top_left_x - (BOUNDARY * block_size) + j * block_size,
+                pygame.draw.rect(surface, BLACK, (top_left_x - (BOUNDARY * block_size) + j * block_size,
                                                       top_left_y - (BOUNDARY * block_size) + i * block_size, block_size,
                                                       block_size), 2)
 
@@ -328,14 +371,14 @@ class Board:
         for i in range(ROWS):
             for j in range(COLUMNS):
                 if i == 0 or i == 1:  # first 2 rows are for spawing
-                    pygame.draw.rect(surface, (50, 100, 255),
+                    pygame.draw.rect(surface, SPAWN_ROWS,
                                      (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size),
                                      0)
-                    pygame.draw.rect(surface, (255, 255, 255),
+                    pygame.draw.rect(surface, WHITE,
                                      (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size),
                                      2)
-                if grid[i][j] != (255, 255, 255):
-                    pygame.draw.rect(surface, (0, 0, 0),
+                if grid[i][j] != WHITE:
+                    pygame.draw.rect(surface, BLACK,
                                      (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size),
                                      2)
 
@@ -344,11 +387,14 @@ class Board:
         cleared_rows = 0
 
         for index in range(ROWS - 1, -1, -1):
-            if (255, 255, 255) not in grid[index]:
+            if WHITE not in grid[index]:
                 cleared_rows += 1
                 cleared_row = index
                 for column in range(COLUMNS):
-                    del self.landed[(column, cleared_row)]  # deletes colours off cleared rows
+                    try:
+                        del self.landed[(column, cleared_row)]  # deletes colours off cleared rows
+                    except KeyError:
+                        pass
 
         # sort all landed positions based on the rows in the grid, then reverse that as we are
         # searching grid from below
@@ -396,28 +442,27 @@ class Piece_Gne:
 
         popped = self.pop(buffer, rng)
 
-        return Piece(4, 1, popped)
-
-
-def num_field(board):
-    num_grid = [[0 for _ in range(COLUMNS)] for _ in range(ROWS)]
-
-    for ind_x, r in enumerate(board):
-        for ind_y, c in enumerate(r):
-            if c != (255, 255, 255):
-                num_grid[ind_x][ind_y] = 1
-
-    return num_grid
+        p = Piece(4, 0, popped)
+        p.y += 1
+        return p
 
 
 def get_rotation_cords(srs, dir, piece):
     data_for_I = data.Data('I', piece.rot_index).get_data()
 
     if piece.str_id == 'I':
-        grid_cords = [(piece.x + y, piece.y + x) for x, y in data_for_I]
+        lowest_block = sorted(data_for_I, key=lambda x: x[1])[-1]
+
+        l_x, l_y = lowest_block
+
+        grid_cords = [((l_x - x) + piece.x, (l_y - y) + piece.y) for x, y in data_for_I]
     else:
-        ascii_cords = srs.rotation(True, piece.piece) if dir == 'cw' else srs.rotation(False, piece.piece)
-        grid_cords = [(piece.x + y, piece.y + x) for x, y in ascii_cords]
+        ascii_cords = srs.rotation(True, piece.state) if dir == 'cw' else srs.rotation(False, piece.state)
+        lowest_block = sorted(ascii_cords, key=lambda x: x[1])[-1]
+
+        l_x, l_y = lowest_block
+
+        grid_cords = [((l_x - x) + piece.x, (l_y - y) + piece.y) for x, y in ascii_cords]
 
     return grid_cords
 
@@ -446,6 +491,7 @@ def Mod(n, d):  # NUMERATOR, DENOMINATOR
 
 class Tetris:
     def __init__(self):
+        self.hold_pressed = 1
         self.win = pygame.display.set_mode((width, height))
         # piece generation setup
         self.generate = Piece_Gne(pieces)
@@ -460,7 +506,6 @@ class Tetris:
         self.change_piece = False
         self.hold_piece = False
         self.unhold_piece = False
-        self.hold_pressed = 0
 
         # get next piece
         self.next_piece = self.generate.get_piece()
@@ -476,6 +521,7 @@ class Tetris:
 
         # gravity setup
         self.fall_time = 0
+        self.fall_speed = 0
 
         # game clock
         self.clock = pygame.time.Clock()
@@ -514,8 +560,9 @@ class Tetris:
     def lost(self):
         # if piece touches top of grid, its a loss
         for pos in self.landed:
-            if pos[1] < 2:
+            if pos[1] <= 2:
                 return True
+
         return False
 
     def change_state(self):
@@ -534,28 +581,26 @@ class Tetris:
         # update game level
         self.board.level = self.lines // 10
 
-        self.collision = Collision()
-
         self.collision.create_field(self.landed)
 
         self.board.show_next_piece(self.win, self.next_piece)
 
-        self.lines, self.score = self.board.lines, self.board.score
+        self.lines, self.score = self.board.lines, self.board.score  # maybe set self.lines = cleared ?
 
         self.current_piece = self.next_piece
 
-        if [(255, 255, 255)] * 10 == self.grid[1] and [(255, 255, 255)] * 10 == self.grid[0]:
+        if [WHITE] * 10 == self.grid[1] and [WHITE] * 10 == self.grid[0] and [WHITE] * 10 == self.grid[2]:
             self.next_piece = self.generate.get_piece()
             self.change_piece = False
 
     def game_logic(self):
         self.grid = self.board.create_grid()
-        fall_speed = 0.28 # self.board.level * 0.05
+        self.fall_speed = 0.28
 
         self.fall_time += self.clock.get_rawtime()
         self.clock.tick()
 
-        if self.fall_time / 1000 > fall_speed:
+        if self.fall_time / 1000 > self.fall_speed:
             self.fall_time = 0
             self.current_piece.y += 1
 
@@ -564,7 +609,7 @@ class Tetris:
                 self.board.score += 1
                 self.change_piece = True
 
-        self.win.fill((128, 128, 128))
+        self.win.fill(BG)
 
         pygame.display.set_caption('Tetris')
 
@@ -578,7 +623,6 @@ class Tetris:
 
                     if action_space[event.key] == 'hold':
                         self.hold_piece = True if self.held_piece is None else False
-                        self.hold_pressed = 1
 
                     if action_space[event.key] == 'unhold':
                         self.unhold_piece = True if self.hold_pressed != 0 else False
@@ -594,7 +638,12 @@ class Tetris:
                     try:
                         self.grid[y][x] = self.current_piece.colour
                     except IndexError:
-                        print('crushed through the wall')
+                        # crushes through the wall
+                        # print('wef')
+                        self.run = False
+
+        # show the best move
+        self.board.show_best_move(self.grid, self.best_move)
 
         '''
         user wants to hold piece, store it in held piece, change current to next,
@@ -623,7 +672,6 @@ class Tetris:
         self.draw_window()
 
         if self.lost():
-            self.update_scores()
             self.run = False
 
     def make_move(self, move):
@@ -651,12 +699,9 @@ class Tetris:
                 self.current_piece.rotate('ccw')
 
         elif action_space[move] == 'hd':
-            works = True
-
-            while works:
-                self.current_piece.y += 1
-
-                works = self.collision.move_works(self.current_piece, pygame.K_DOWN)
+            while valid_space(self.current_piece, self.grid):
+                self.current_piece.y -= 1
+            self.current_piece.y += 1
 
 tetris_game = Tetris()
 
@@ -665,4 +710,5 @@ while tetris_game.run:
 
     if tetris_game.change_piece:
         tetris_game.change_state()
+
 

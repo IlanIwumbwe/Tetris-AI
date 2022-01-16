@@ -60,7 +60,7 @@ GREEN = (51, 255, 51)
 WHITE = (255, 255, 255)
 GREY = (100, 100, 100)
 BLACK = (0, 0, 0)
-SPAWN_ROWS = (50, 100, 255)
+SPAWN_ROWS = (100, 140, 40) #(50, 100, 255)
 BG = (128, 128, 128)
 
 colours = {I: CYAN, S: BLUE, O: PINK, Z: YELLOW, T: ORANGE, L: GREEN, J: RED}
@@ -101,7 +101,6 @@ def valid_space(piece, grid):  # piece is an object
         if i not in valid_positions:
             return False
     return True
-
 
 class SRS:
     def __init__(self, piece):  # piece is an object
@@ -166,28 +165,28 @@ class Piece:
         srs = SRS(self)
         new_str = ['.' for _ in range(16)]
 
-        if len(self.state_cords) != 0:
-            if self.str_id != 'I':
-                if dir == 'cw':
-                    self.clockwise = True
-                else:
-                    self.clockwise = False
 
-                self.state_cords = srs.rotation(self.clockwise, self.state)
-
-                for x, y in self.state_cords:
-                    ind = 4*y + x
-                    new_str[ind] = 'x'
-
-                self.state = ''.join(new_str)
+        if self.str_id != 'I':
+            if dir == 'cw':
+                self.clockwise = True
             else:
-                self.state_cords = rotation_data_for_I
+                self.clockwise = False
 
-                for x, y in self.state_cords:
-                    ind = 4 * y + x
-                    new_str[ind] = 'x'
+            self.state_cords = srs.rotation(self.clockwise, self.state)
 
-                self.state = ''.join(new_str)
+            for x, y in self.state_cords:
+                ind = 4*y + x
+                new_str[ind] = 'x'
+
+            self.state = ''.join(new_str)
+        else:
+            self.state_cords = rotation_data_for_I
+
+            for x, y in self.state_cords:
+                ind = 4 * y + x
+                new_str[ind] = 'x'
+
+            self.state = ''.join(new_str)
 
     def current_position(self):  # get grid positions of a passed piece object
         lowest_block = max(self.state_cords, key=lambda x: x[1])
@@ -391,7 +390,10 @@ class Board:
                 cleared_rows += 1
                 cleared_row = index
                 for column in range(COLUMNS):
-                    del self.landed[(column, cleared_row)]  # deletes colours off cleared rows
+                    try:
+                        del self.landed[(column, cleared_row)]  # deletes colours off cleared rows
+                    except KeyError:
+                        pass
 
         # sort all landed positions based on the rows in the grid, then reverse that as we are
         # searching grid from below
@@ -439,7 +441,9 @@ class Piece_Gne:
 
         popped = self.pop(buffer, rng)
 
-        return Piece(4, 1, popped)
+        p = Piece(4, 0, popped)
+        p.y += 1
+        return p
 
 
 def get_rotation_cords(srs, dir, piece):
@@ -554,14 +558,16 @@ class Tetris:
     def lost(self):
         # if piece touches top of grid, its a loss
         for pos in self.landed:
-            if pos[1] < 2:
+            if pos[1] <= 2:
                 return True
+
         return False
 
     def change_state(self):
-        # lock position
+        self.board.score += 1
+        """# lock position
         for i in self.current_piece.current_position():
-            self.landed[i] = self.current_piece.colour
+            self.landed[i] = self.current_piece.colour"""
 
         # clear rows
         cleared = self.board.clear_rows(self.grid)
@@ -587,19 +593,10 @@ class Tetris:
 
     def game_logic(self):
         self.grid = self.board.create_grid()
-        self.fall_speed = 0.01
+        self.fall_speed = 0.00001
 
         self.fall_time += self.clock.get_rawtime()
         self.clock.tick()
-
-        if self.fall_time / 1000 > self.fall_speed:
-            self.fall_time = 0
-            self.current_piece.y += 1
-
-            if not valid_space(self.current_piece, self.grid):  # piece has landed
-                self.current_piece.y -= 1
-                self.board.score += 1
-                self.change_piece = True
 
         self.win.fill(BG)
 
@@ -618,8 +615,7 @@ class Tetris:
                     try:
                         self.grid[y][x] = self.current_piece.colour
                     except IndexError:
-                        # crushes through the wall
-                        # print('wef')
+                        print('crushes through the wall')
                         self.run = False
 
         # show the best move
@@ -682,12 +678,9 @@ class Tetris:
                 self.current_piece.rotate('ccw')
 
         elif action_space[move] == 'hd':
-            works = True
-
-            while works:
-                self.current_piece.y += 1
-
-                works = self.collision.move_works(self.current_piece, pygame.K_DOWN)
+            while valid_space(self.current_piece, self.grid):
+                self.current_piece.y -= 1
+            self.current_piece.y += 1
 
     # testing computer to make raw key presses based on best move
     def make_ai_move(self):  # collision is an obj
@@ -699,6 +692,8 @@ class Tetris:
 
         cu_rot_state = current_config[0]
         t_rot_state = target_config[0]
+
+        block_pos = target_config[2]
 
         diff = cu_rot_state - t_rot_state
         rotation_options = [pygame.K_UP, pygame.K_w]
@@ -719,8 +714,14 @@ class Tetris:
         else:
             for _ in range(abs(moves)):
                 self.make_move(pygame.K_LEFT)
+        
+        for x, y in block_pos:
+            self.landed[(x, y)] = self.current_piece.colour
+            
+        time.sleep(0.05)
+        self.change_piece = True
 
-        #self.make_move(pygame.K_TAB)
+
 
 
 

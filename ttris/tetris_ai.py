@@ -582,9 +582,8 @@ class Tetris:
 
         self.current_piece = self.next_piece
 
-        if [WHITE] * 10 == self.grid[1] and [WHITE] * 10 == self.grid[0]:
-            self.next_piece = self.generate.get_piece()
-            self.change_piece = False
+        self.next_piece = self.generate.get_piece()
+        self.change_piece = False
 
     def game_logic(self):
         self.grid = self.board.create_grid()

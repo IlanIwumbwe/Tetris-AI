@@ -189,13 +189,9 @@ class Piece:
 
             self.state = ''.join(new_str)
 
+    
     def current_position(self):  # get grid positions of a passed piece object
-        lowest_block = max(self.state_cords, key=lambda x: x[1])
-
-        l_x, l_y = lowest_block
-
-        rel_cords = [(x-l_x, y-l_y) for x, y in self.state_cords]
-        return [(r_x+self.x, r_y+self.y) for r_x, r_y in rel_cords]
+        return [(r_x+self.x, r_y+self.y) for r_x, r_y in self.state_cords]
 
     def get_config(self):
         return self.rot_index, (self.x, self.y), self.current_position(), 0

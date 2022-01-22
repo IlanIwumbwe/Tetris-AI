@@ -6,9 +6,9 @@ import pickle
 from model import Population
 
 class AI_Agent:
-    def __init__(self, rows, columns):  # piece is an object
-        self.rows = rows
-        self.columns = columns
+    def __init__(self):  # piece is an object
+        self.rows = tetris_ai.ROWS
+        self.columns = tetris_ai.COLUMNS
         self.field = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
         self.landed = None
         self.final_cords = []
@@ -18,55 +18,53 @@ class AI_Agent:
         self.final_positions = {}
         self.all_pieces = ['I', 'S', 'O', 'Z', 'T', 'L', 'J']
         self.all_configurations_per_piece = {}
-        self.all_configurations = {}
+        self.all_configurations = []
         self.cord_scores = {}
         self.actions_scores = []
         self.neural_network = None
 
     def get_possible_configurations(self):
-        positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if ind_x != 0 or ind_x != 1] for ind_x in range(self.rows)]
+        positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if self.field[ind_x][ind_y] == 0] for ind_x in range(self.rows)]
         all_positions = [tupl for li in positions for tupl in li]
 
         for piece_id in self.all_pieces:
             data_obj = data.Data(piece_id, None)
-            all_configurations = {}
+            all_configurations = []
 
-            for pos_x, pos_y in all_positions:
-                all_configurations[(pos_x, pos_y)] = []
-                for index in range(4):  # all rotation indices....
-                    relative_cords = []
-                    data_obj.rot_index = index
-                    ascii_cords = data_obj.get_data()  # exp: [(0, 1), (0, 2), (1, 2), (1, 3)]
+            for pos_x in range(self.columns):
+                possible = 0
 
-                    lowest_block = max(ascii_cords, key=lambda cord: cord[1])  # lowest hanging piece based on y
+                for ind in range(4):
+                    data_obj.rot_index = ind
+                    ascii_cords = data_obj.get_data()
 
-                    lo_x, lo_y = lowest_block
-                    # get relative cords to lowest block
-                    for x, y in ascii_cords:
-                        relative_cords.append((x - lo_x, y - lo_y))
+                    abb_y = 2
+                    if not all([(pos_x + x, abb_y + y) in all_positions for x, y in ascii_cords]):
+                        possible += 0
+                    else:
+                        possible += 1
 
-                    final_global_cords = [(x + pos_x, y + pos_y) for x, y in relative_cords]
+                if possible != 0:
+                    for index in range(4):
+                        data_obj.rot_index = index
+                        ascii_cords = data_obj.get_data()
+                        pos_y = 0
+                        done = False
 
-                    # check validity of rotation states
-                    if all([cord in all_positions for cord in final_global_cords]):
-                        all_configurations[(pos_x, pos_y)].append((index, final_global_cords))
+                        while not done:
+                            if not all([(pos_x+x, pos_y+1+y) in all_positions for x, y in ascii_cords]):
+                                final_global_cords = [(x + pos_x, y + pos_y) for x, y in ascii_cords]
+                                # check validity of rotation states
+                                if all([cord in all_positions for cord in final_global_cords]):
+                                    all_configurations.append(((pos_x, pos_y), index, final_global_cords))
 
-                # remove position from all configurations list if it yields an empty list i.e no configurations are
-                # possible
-
-                if len(all_configurations[(pos_x, pos_y)]) == 0:
-                    del all_configurations[(pos_x, pos_y)]
+                                done = True
+                            else:
+                                pos_y += 1
+                else:
+                    continue
 
             self.all_configurations_per_piece[piece_id] = all_configurations
-
-    def final_y(self, column):
-        for row in range(self.rows):
-            if self.field[row][column] == 1:
-                return row - 1
-            else:
-                continue
-
-        return self.rows - 1
 
     def set_all_configurations(self, current_piece):
         self.all_configurations = self.all_configurations_per_piece[current_piece.str_id]
@@ -79,9 +77,9 @@ class AI_Agent:
         return mapping
 
     def update_agent(self, current_piece):
-        self.set_all_configurations(current_piece)
-        self.update_all_configurations()
         self.update_field()
+        self.get_possible_configurations()
+        self.set_all_configurations(current_piece)
 
         self.heuris.update_field(self.field)
 
@@ -97,66 +95,39 @@ class AI_Agent:
                         print('random index error is random')
                         pass
 
-    def update_all_configurations(self):
-        if self.landed != {}:
-            for landed_cord in self.landed.keys():
-                if landed_cord in self.all_configurations:
-                    del self.all_configurations[landed_cord]
-
-    def set_final_cords(self, final_cords):
-        self.final_cords = final_cords
-
-    def set_final_positions(self):
-        self.final_positions = {}
-        for cord in self.all_configurations:
-            if cord in self.final_cords:
-                self.final_positions[cord] = self.all_configurations[cord]
-
     def evaluation_function(self, current_piece):
-        best_move_per_column = {}
-        if len(self.final_positions) != 0:
-            score_move_per_column = {}
+        if len(self.all_configurations) != 0:
+            score_moves = []
+            field = self.field.copy()
+            for cord, index, positions in self.all_configurations:
+                # fill in block positions in test field
+                for x, y in positions:
+                    field[y][x] = 1
 
-            for cord, positions in self.final_positions.items():
-                score_move_per_column[cord] = []
-                for index, pos in positions:  # first part is the rotation index, second part are the positions
-                    field = self.field.copy()
+                # pass that as the field to be used to get heuristics
+                self.heuris.update_field(field)
 
-                    # fill in block positions in test field
-                    for x, y in pos:
-                        field[y][x] = 1
+                # access info from heuristics file
+                possible_reward = self.heuris.get_reward()
+                board_state = self.heuris.get_heuristics()
 
-                    # pass that as the field to be used to get heuristics
-                    self.heuris.update_field(field)
+                # get piece mapping
+                mapping = self.get_piece_mapping(current_piece)
 
-                    # access info from heuristics file
-                    possible_reward = self.heuris.get_reward()
-                    board_state = self.heuris.get_heuristics()
+                # prepare full board state
+                full_board_state = mapping + board_state
 
-                    # get piece mapping
-                    mapping = self.get_piece_mapping(current_piece)
+                # get score from nueral net
+                move_score = self.neural_network.activate(full_board_state)[0]
 
-                    # prepare full board state
-                    full_board_state = mapping + board_state
+                # re-update with initial field!! IMPORTANT!!
+                self.heuris.update_field(self.field)
 
-                    # get score from nueral net
-                    move_score = self.neural_network.activate(full_board_state)[0]
+                # check all positions above the piece, make sure they are empty, otherwise it is physically impossible for them to be there
+                #if all([self.field[y_above][fin_x] == 0 for fin_x, fin_y in positions for y_above in range(fin_y) if (fin_x, y_above) not in positions]):
+                score_moves.append((index, cord, positions, possible_reward, move_score))
 
-                    # re-update with initial field!! IMPORTANT!!
-                    self.heuris.update_field(self.field)
-
-                    # check all positions above the piece, make sure they are empty, otherwise it is physically impossible for them to be there
-                    if all([self.field[y_above][fin_x] == 0 for fin_x, fin_y in pos for y_above in range(fin_y) if (fin_x, y_above) not in pos]):
-                        score_move_per_column[cord].append((index, cord, pos, possible_reward, move_score))
-
-            # find best move per column
-            for cord, positions in score_move_per_column.items():
-                if len(positions) != 0:
-                    best_move_per_column[cord] = max(positions, key = lambda x : x[-1])
-
-            # go through each move per column score and choose highest scoring move
-
-            best_move = max(best_move_per_column.items(), key= lambda pair: pair[1][-1])[1]
+            best_move = max(score_moves,  key= lambda x: x[-1])
 
             self.best_move = best_move[:-1]
 
@@ -164,10 +135,6 @@ class AI_Agent:
             self.best_move = current_piece.get_config()
 
     def get_best_move(self, current_piece):
-        final_cords = [(col, self.final_y(col)) for col in range(self.columns)]
-        self.set_final_cords(final_cords)
-        self.set_final_positions()
-
         self.evaluation_function(current_piece)
 
         return self.best_move
@@ -178,16 +145,14 @@ class AI_Agent:
 
 class Trainer:
     def __init__(self):
-        self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
-        self.agent.get_possible_configurations()
+        self.agent = AI_Agent()
 
     def eval_genomes(self, genomes, config):
         for genome_id, genome in genomes:
             current_fitness = 0
             tetris_game = tetris_ai.Tetris()
 
-            self.agent = AI_Agent(tetris_ai.ROWS, tetris_ai.COLUMNS)
-            self.agent.get_possible_configurations()
+            self.agent = AI_Agent()
             self.agent.neural_network = neat.nn.FeedForwardNetwork.create(genome, config)
 
             while tetris_game.run:

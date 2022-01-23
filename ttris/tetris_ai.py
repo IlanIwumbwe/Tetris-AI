@@ -46,9 +46,8 @@ J = '....' \
 CLOCKWISE_MATRIX = [[0, 1], [-1, 0]]
 ANTICLOCKWISE_MATRIX = [[0, -1], [1, 0]]
 
-pieces = [I, S, O, Z, T, L, J]
-str_pieces = {I: 'I', S: 'S', O: 'O', Z: 'Z', T: 'T', L: 'L', J: 'J'}
-centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}
+pieces = {'I': I, 'S': S, 'O': O, 'Z': Z, 'T': T, 'L': L, 'J': J}
+centres = {'I': (1, 1), 'S': (1, 2), 'O': (1, 1), 'Z': (1, 2), 'T': (1, 2), 'L': (2, 2), 'J': (1, 2)}
 
 CYAN = (51, 255, 255)
 BLUE = (255, 255, 100)
@@ -63,7 +62,7 @@ BLACK = (0, 0, 0)
 SPAWN_ROWS = (100, 140, 40) #(50, 100, 255)
 BG = (128, 128, 128)
 
-colours = {I: CYAN, S: BLUE, O: PINK, Z: YELLOW, T: ORANGE, L: GREEN, J: RED}
+colours = {'I': CYAN, 'S': BLUE, 'O': PINK, 'Z': YELLOW, 'T': ORANGE, 'L': GREEN, 'J': RED}
 
 action_space = {pygame.K_DOWN: 'down', pygame.K_RIGHT: 'right', pygame.K_LEFT: 'left', pygame.K_UP: 'cw',
                 pygame.K_w: 'ccw', pygame.K_TAB: 'hd', pygame.K_SPACE: 'hold', pygame.K_BACKSPACE: 'unhold'}
@@ -147,17 +146,17 @@ class SRS:
 
 
 class Piece:
-    def __init__(self, x=None, y=None, piece=None):
+    def __init__(self, x=None, y=None, str_piece=None):
         self.x = x
         self.y = y
-        self.piece = piece
-        self.colour = colours[self.piece] if self.piece is not None else None
+        self.str_id = str_piece
+        self.piece = pieces[str_piece]
         self.rot_index = 0
         self.state = self.piece
         self.clockwise = None
         self.all = [(j, i) for i in range(4) for j in range(4)]
-        self.centre = centres[self.piece]
-        self.str_id = str_pieces[self.piece]
+        self.centre = centres[self.str_id]
+        self.colour = colours[self.str_id] if self.piece is not None else None
         self.state_cords = data.Data(self.str_id, 0).get_data()
 
     def rotate(self, dir):
@@ -492,7 +491,7 @@ class Tetris:
     def __init__(self):
         self.win = pygame.display.set_mode((width, height))
         # piece generation setup
-        self.generate = Piece_Gne(pieces)
+        self.generate = Piece_Gne(['I', 'S', 'O', 'Z', 'T', 'L', 'J'])
 
         # get starting piece object
         self.current_piece = self.generate.get_piece()
@@ -558,13 +557,14 @@ class Tetris:
     def lost(self):
         # if piece touches top of grid, its a loss
         for pos in self.landed:
-            if pos[1] <= 2:
+            if pos[1] <= 1:
                 return True
 
         return False
 
     def change_state(self):
         self.board.score += 1
+
         """# lock position
         for i in self.current_piece.current_position():
             self.landed[i] = self.current_piece.colour"""
@@ -574,8 +574,6 @@ class Tetris:
 
         if cleared == 4:
             self.tetrises += 1
-
-        show_piece = True
 
         # update game level
         self.board.level = self.lines // 10
@@ -593,10 +591,6 @@ class Tetris:
 
     def game_logic(self):
         self.grid = self.board.create_grid()
-        self.fall_speed = 0.00001
-
-        self.fall_time += self.clock.get_rawtime()
-        self.clock.tick()
 
         self.win.fill(BG)
 
@@ -619,7 +613,7 @@ class Tetris:
                         self.run = False
 
         # show the best move
-        self.board.show_best_move(self.grid, self.best_move)
+        # self.board.show_best_move(self.grid, self.best_move)
 
         '''
         user wants to hold piece, store it in held piece, change current to next,
@@ -651,36 +645,38 @@ class Tetris:
             self.run = False
 
     def reward_info(self):
-        return self.score*10 + self.lines*1000
+        return self.score*100 + self.lines*3000
 
-    def make_move(self, move):
+    def make_move(self, move, piece):
         if action_space[move] == 'down':
-            if self.collision.move_works(self.current_piece, move):
-                self.current_piece.y += 1
-                return 'worked'
-            else:
-                return 'collided'
+            if self.collision.move_works(piece, move):
+                piece.y += 1
 
         elif action_space[move] == 'right':
-            if self.collision.move_works(self.current_piece, move):
-                self.current_piece.x += 1
+            if self.collision.move_works(piece, move):
+                piece.x += 1
 
         elif action_space[move] == 'left':
-            if self.collision.move_works(self.current_piece, move):
-                self.current_piece.x -= 1
+            if self.collision.move_works(piece, move):
+                piece.x -= 1
 
         elif action_space[move] == 'cw':
-            if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
-                self.current_piece.rotate('cw')
+            if self.collision.move_works(piece, move) != False and not piece.piece == O:
+                piece.rotate('cw')
 
         elif action_space[move] == 'ccw':
-            if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
-                self.current_piece.rotate('ccw')
+            if self.collision.move_works(piece, move) != False and not piece.piece == O:
+                piece.rotate('ccw')
 
         elif action_space[move] == 'hd':
-            while valid_space(self.current_piece, self.grid):
-                self.current_piece.y -= 1
-            self.current_piece.y += 1
+            works = True
+
+            while works:
+                piece.y += 1
+                works = self.collision.move_works(piece, pygame.K_DOWN)
+
+                if not works:
+                    break
 
     # testing computer to make raw key presses based on best move
     def make_ai_move(self):  # collision is an obj
@@ -700,25 +696,25 @@ class Tetris:
 
         if abs(diff) == 2:
             choice = random.choice(rotation_options)
-            self.make_move(choice)
+            self.make_move(choice, self.current_piece)
         elif abs(diff) == 1:
-            self.make_move(pygame.K_UP)
+            self.make_move(pygame.K_UP, self.current_piece)
         elif abs(diff) == 3:
-            self.make_move(pygame.K_w)
+            self.make_move(pygame.K_w, self.current_piece)
 
         moves = t_x - cu_x
 
         if t_x > cu_x:
             for _ in range(abs(moves)):
-                self.make_move(pygame.K_RIGHT)
+                self.make_move(pygame.K_RIGHT, self.current_piece)
         else:
             for _ in range(abs(moves)):
-                self.make_move(pygame.K_LEFT)
-        
-        for x, y in block_pos:
-            self.landed[(x, y)] = self.current_piece.colour
-            
-        time.sleep(0.05)
+                self.make_move(pygame.K_LEFT, self.current_piece)
+
+        for i in block_pos:
+            self.landed[i] = self.current_piece.colour
+
+        time.sleep(0.005)
         self.change_piece = True
 
 

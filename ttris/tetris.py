@@ -46,9 +46,8 @@ J = '....' \
 CLOCKWISE_MATRIX = [[0, 1], [-1, 0]]
 ANTICLOCKWISE_MATRIX = [[0, -1], [1, 0]]
 
-pieces = [I, S, O, Z, T, L, J]
-str_pieces = {I: 'I', S: 'S', O: 'O', Z: 'Z', T: 'T', L: 'L', J: 'J'}
-centres = {I: (1, 1), S: (1, 2), O: (1, 1), Z: (1, 2), T: (1, 2), L: (2, 2), J: (1, 2)}
+pieces = {'I':I, 'S': S, 'O': O, 'Z': Z, 'T': T, 'L': L, 'J': J}
+centres = {'I': (1, 1), 'S': (1, 2), 'O': (1, 1), 'Z': (1, 2), 'T': (1, 2), 'L': (2, 2), 'J': (1, 2)}
 
 CYAN = (51, 255, 255)
 BLUE = (255, 255, 100)
@@ -63,7 +62,7 @@ BLACK = (0, 0, 0)
 SPAWN_ROWS = (100, 140, 40) #(50, 100, 255)
 BG = (128, 128, 128)
 
-colours = {I: CYAN, S: BLUE, O: PINK, Z: YELLOW, T: ORANGE, L: GREEN, J: RED}
+colours = {'I': CYAN, 'S': BLUE, 'O': PINK, 'Z': YELLOW, 'T': ORANGE, 'L': GREEN, 'J': RED}
 
 action_space = {pygame.K_DOWN: 'down', pygame.K_RIGHT: 'right', pygame.K_LEFT: 'left', pygame.K_UP: 'cw',
                 pygame.K_w: 'ccw', pygame.K_TAB: 'hd', pygame.K_SPACE: 'hold', pygame.K_BACKSPACE: 'unhold'}
@@ -148,17 +147,17 @@ class SRS:
 
 
 class Piece:
-    def __init__(self, x=None, y=None, piece=None):
+    def __init__(self, x=None, y=None, str_piece=None):
         self.x = x
         self.y = y
-        self.piece = piece
-        self.colour = colours[self.piece] if self.piece is not None else None
+        self.str_id = str_piece
+        self.piece = pieces[self.str_id]
         self.rot_index = 0
         self.state = self.piece
         self.clockwise = None
         self.all = [(j, i) for i in range(4) for j in range(4)]
-        self.centre = centres[self.piece]
-        self.str_id = str_pieces[self.piece]
+        self.centre = centres[self.str_id]
+        self.colour = colours[self.str_id] if self.piece is not None else None
         self.state_cords = data.Data(self.str_id, 0).get_data()
 
     def rotate(self, dir):
@@ -189,7 +188,6 @@ class Piece:
 
             self.state = ''.join(new_str)
 
-    
     def current_position(self):  # get grid positions of a passed piece object
         return [(r_x+self.x, r_y+self.y) for r_x, r_y in self.state_cords]
 
@@ -237,7 +235,7 @@ class Collision:
 
         elif action_space[move] == 'ccw':
             piece.rot_index = Mod(piece.rot_index - 1, 4)
-            rotation_cords = get_rotation_cords(srs, 'cw', piece)
+            rotation_cords = get_rotation_cords(srs, 'ccw', piece)
 
             try:
                 return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
@@ -439,7 +437,6 @@ class Piece_Gne:
         popped = self.pop(buffer, rng)
 
         p = Piece(4, 0, popped)
-        p.y += 1
         return p
 
 
@@ -447,18 +444,11 @@ def get_rotation_cords(srs, dir, piece):
     data_for_I = data.Data('I', piece.rot_index).get_data()
 
     if piece.str_id == 'I':
-        lowest_block = sorted(data_for_I, key=lambda x: x[1])[-1]
-
-        l_x, l_y = lowest_block
-
-        grid_cords = [((l_x - x) + piece.x, (l_y - y) + piece.y) for x, y in data_for_I]
+        grid_cords = [(x + piece.x, y+ piece.y) for x, y in data_for_I]
     else:
         ascii_cords = srs.rotation(True, piece.state) if dir == 'cw' else srs.rotation(False, piece.state)
-        lowest_block = sorted(ascii_cords, key=lambda x: x[1])[-1]
 
-        l_x, l_y = lowest_block
-
-        grid_cords = [((l_x - x) + piece.x, (l_y - y) + piece.y) for x, y in ascii_cords]
+        grid_cords = [(x+ piece.x, y + piece.y) for x, y in ascii_cords]
 
     return grid_cords
 
@@ -490,7 +480,7 @@ class Tetris:
         self.hold_pressed = 1
         self.win = pygame.display.set_mode((width, height))
         # piece generation setup
-        self.generate = Piece_Gne(pieces)
+        self.generate = Piece_Gne(['I', 'S', 'O', 'Z', 'T', 'L', 'J'])
 
         # get starting piece object
         self.current_piece = self.generate.get_piece()
@@ -585,8 +575,9 @@ class Tetris:
 
         self.current_piece = self.next_piece
 
-        self.next_piece = self.generate.get_piece()
-        self.change_piece = False
+        if [WHITE] * 10 == self.grid[1] and [WHITE] * 10 == self.grid[0] and [WHITE] * 10 == self.grid[2]:
+            self.next_piece = self.generate.get_piece()
+            self.change_piece = False
 
     def game_logic(self):
         self.grid = self.board.create_grid()
@@ -597,10 +588,10 @@ class Tetris:
 
         if self.fall_time / 1000 > self.fall_speed:
             self.fall_time = 0
-            self.current_piece.y += 1
 
-            if not valid_space(self.current_piece, self.grid):  # piece has landed
-                self.current_piece.y -= 1
+            if self.collision.move_works(self.current_piece, pygame.K_DOWN):
+                self.current_piece.y += 1
+            else:
                 self.board.score += 1
                 self.change_piece = True
 
@@ -673,9 +664,6 @@ class Tetris:
         if action_space[move] == 'down':
             if self.collision.move_works(self.current_piece, move):
                 self.current_piece.y += 1
-                return 'worked'
-            else:
-                return 'collided'
 
         elif action_space[move] == 'right':
             if self.collision.move_works(self.current_piece, move):
@@ -694,9 +682,14 @@ class Tetris:
                 self.current_piece.rotate('ccw')
 
         elif action_space[move] == 'hd':
-            while valid_space(self.current_piece, self.grid):
-                self.current_piece.y -= 1
-            self.current_piece.y += 1
+            works = True
+
+            while works:
+                self.current_piece.y += 1
+                works = self.collision.move_works(self.current_piece, pygame.K_DOWN)
+
+                if not works:
+                    break
 
 tetris_game = Tetris()
 

@@ -146,6 +146,7 @@ class SRS:
 
 
 class Piece:
+    pieces_dealt = 0
     def __init__(self, x=None, y=None, str_piece=None):
         self.x = x
         self.y = y
@@ -291,7 +292,7 @@ class Board:
 
     def create_grid(self):
         # if you want to change colour of grid, change _____ to desired colour! (except tetromino colour)
-        GRID = [[WHITE for column in range(COLUMNS)] for row in range(ROWS)]
+        GRID = [[WHITE for _ in range(COLUMNS)] for _ in range(ROWS)]
 
         for i in range(ROWS):
             for j in range(COLUMNS):
@@ -442,6 +443,8 @@ class Piece_Gne:
 
         p = Piece(4, 0, popped)
         p.y += 1
+
+        p.pieces_dealt += 1
         return p
 
 
@@ -555,10 +558,13 @@ class Tetris:
             file.write(f'\nScore: {self.score} ......  Lines: {self.lines}')
 
     def lost(self):
-        # if piece touches top of grid, its a loss
-        for pos in self.landed:
-            if pos[1] <= 1:
-                return True
+        if self.current_piece.pieces_dealt == 500:
+            return True
+        else:
+            # if piece touches top of grid, its a loss
+            for pos in self.landed:
+                if pos[1] <= 1:
+                    return True
 
         return False
 
@@ -644,8 +650,8 @@ class Tetris:
         if self.lost():
             self.run = False
 
-    def reward_info(self):
-        return self.score*100 + self.lines*3000
+    def fitness_func(self):
+        return self.lines + self.tetrises*1000
 
     def make_move(self, move, piece):
         if action_space[move] == 'down':
@@ -714,7 +720,7 @@ class Tetris:
         for i in block_pos:
             self.landed[i] = self.current_piece.colour
 
-        time.sleep(0.005)
+        time.sleep(0.0005)
         self.change_piece = True
 
 

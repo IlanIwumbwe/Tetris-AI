@@ -108,16 +108,16 @@ class Heuristics:
             print(f'{i} \n')
 
     def get_heuristics(self):
-        grid_data = self.empty()
-        return grid_data + [self.aggr_height(), self.total_holes(), self.bumpiness(), self.std_heights(), self.pits(), self.deepest_well(), self.lines_cleared()]
+        # grid_data = self.empty()
+        return np.array([self.aggr_height(), self.total_holes(), self.bumpiness(), self.lines_cleared()])
 
     def empty(self):
         em = [0 for _ in range(200)]
 
-        for ind_y in range(self.height-2):
+        for ind_y in range(2, self.height-2):
             for ind_x in range(self.width):
                 if self.field[ind_y][ind_x] == 1:
-                    ind = 10*ind_y + ind_x
+                    ind = 10*(ind_y-2) + ind_x
                     em[ind] = 1
 
         return em

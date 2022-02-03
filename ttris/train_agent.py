@@ -3,7 +3,7 @@ import heuristics as hu
 import data
 import neat
 import pickle
-from model import Population
+from nueralnet import Population
 
 class AI_Agent:
     def __init__(self):  # piece is an object
@@ -68,6 +68,7 @@ class AI_Agent:
 
     def set_all_configurations(self, current_piece):
         self.all_configurations = self.all_configurations_per_piece[current_piece.str_id]
+        print(self.all_configurations)
 
     def get_piece_mapping(self, current_piece):
         mapping = [0 for _ in range(7)]
@@ -119,7 +120,7 @@ class AI_Agent:
                 full_board_state = board_state
 
                 # get score from nueral net
-                move_score = sum(self.vector*full_board_state)
+                move_score = self.vector.activate(full_board_state)[0]
 
                 # re-update with initial field!! IMPORTANT!!
                 self.heuris.update_field(self.field)
@@ -151,65 +152,58 @@ class Trainer:
         self.old_pop = None
         self.record = 0
         self.epochs = 10000
-        self.games = 5
+        self.games = 3
         self.pop_size = 100
 
-    def eval_genomes(self):
-        for epoch in range(self.epochs):
+    def eval_genomes(self, genomes, config):
+        """for epoch in range(self.epochs):
             self.new_pop = Population(self.pop_size, self.old_pop)
-            print('______________________________')
-            print(f'Epoch: {epoch+1}')
+            print('________________________________')
+            print(f'Epoch: {epoch+1}')"""
+        for genome_id, genome in genomes:
+            #print(f'Member: {vector+1}')
+            # print(f'{self.new_pop.models[vector]}')
+            #print('_________________________________')
+            current_fitness = 0
+            tetris_game = tetris_ai.Tetris()
 
-            for vector in range(self.new_pop.size):
-                print(f'Member: {vector+1}')
-                print(' Height     Holes     Bumpiness     Lines')
-                print(f'{self.new_pop.models[vector]}')
-                print('_________________________________')
-                total_fitness = 0
-                for game in range(self.games):
-                    print(f'Game: {game+1}')
-                    current_fitness = 0
-                    tetris_game = tetris_ai.Tetris()
+            self.agent = AI_Agent()
+            self.agent.vector = neat.nn.FeedForwardNetwork.create(genome, config)
 
-                    self.agent = AI_Agent()
-                    self.agent.vector = self.new_pop.models[vector]
+            while tetris_game.run:
+                self.agent.landed = tetris_game.landed
 
-                    while tetris_game.run:
-                        self.agent.landed = tetris_game.landed
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
+                tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
 
-                        # update the agent with useful info to find the best move
-                        self.agent.update_agent(tetris_game.current_piece)
-                        tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
+                tetris_game.game_logic()
 
-                        tetris_game.game_logic()
+                # make the move
+                tetris_game.make_ai_move()
 
-                        # make the move
-                        tetris_game.make_ai_move()
+                current_fitness += tetris_game.fitness_func()
 
-                        current_fitness += tetris_game.fitness_func()
+                self.agent.landed = tetris_game.landed
 
-                        self.agent.landed = tetris_game.landed
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
 
-                        # update the agent with useful info to find the best move
-                        self.agent.update_agent(tetris_game.current_piece)
+                if tetris_game.change_piece:
+                    tetris_game.change_state()
 
-                        if tetris_game.change_piece:
-                            tetris_game.change_state()
+                if not tetris_game.run:
+                    genome.fitness = current_fitness
 
-                        if not tetris_game.run:
-                            total_fitness += current_fitness
+                    # reset to a new tetris game, and reset the agent as well
+                    break
 
-                            # reset to a new tetris game, and reset the agent as well
-                            break
+            if current_fitness > self.record:
+                self.record = current_fitness
 
-                self.new_pop.fitnesses[vector] = total_fitness/self.games
+                # print(f'Record: {self.record} *******')
 
-                if total_fitness/self.games > self.record:
-                    self.record = total_fitness/self.games
-
-                    print(f'Record: {self.record} ***')
-
-            self.old_pop = self.new_pop
+        # self.old_pop = self.new_pop
 
     def train(self):
         config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
@@ -230,6 +224,6 @@ class Trainer:
 if __name__ == '__main__':
     trainer = Trainer()
 
-    trainer.eval_genomes()
+    trainer.train()
 
 

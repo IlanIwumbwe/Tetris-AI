@@ -68,7 +68,6 @@ class AI_Agent:
 
     def set_all_configurations(self, current_piece):
         self.all_configurations = self.all_configurations_per_piece[current_piece.str_id]
-        print(self.all_configurations)
 
     def get_piece_mapping(self, current_piece):
         mapping = [0 for _ in range(7)]
@@ -99,15 +98,14 @@ class AI_Agent:
     def evaluation_function(self, current_piece):
         if len(self.all_configurations) != 0:
             score_moves = []
-            field = self.field.copy()
 
             for cord, index, positions in self.all_configurations:
                 # fill in block positions in test field
                 for x, y in positions:
-                    field[y][x] = 1
+                    self.field[y][x] = 1
 
                 # pass that as the field to be used to get heuristics
-                self.heuris.update_field(field)
+                self.heuris.update_field(self.field)
 
                 # access info from heuristics file
                 possible_reward = self.heuris.get_reward()
@@ -122,8 +120,9 @@ class AI_Agent:
                 # get score from nueral net
                 move_score = self.vector.activate(full_board_state)[0]
 
-                # re-update with initial field!! IMPORTANT!!
-                self.heuris.update_field(self.field)
+                # EMPTY THE POSITIONS!
+                for x, y in positions:
+                    self.field[y][x] = 0
 
                 # check all positions above the piece, make sure they are empty, otherwise it is physically impossible for them to be there
                 #if all([self.field[y_above][fin_x] == 0 for fin_x, fin_y in positions for y_above in range(fin_y) if (fin_x, y_above) not in positions]):

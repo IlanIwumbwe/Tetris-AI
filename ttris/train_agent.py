@@ -23,51 +23,47 @@ class AI_Agent:
         self.actions_scores = []
         self.vector = None
 
-    def get_possible_configurations(self):
+    def get_possible_configurations(self, current_piece):
         positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if self.field[ind_x][ind_y] == 0] for ind_x in range(self.rows)]
         all_positions = [tupl for li in positions for tupl in li]
 
-        for piece_id in self.all_pieces:
-            data_obj = data.Data(piece_id, None)
-            all_configurations = []
+        data_obj = data.Data(current_piece.str_id, None)
+        all_configurations = []
 
-            for pos_x in range(self.columns):
-                possible = 0
+        for pos_x in range(self.columns):
+            possible = 0
 
-                for ind in range(4):
-                    data_obj.rot_index = ind
-                    ascii_cords = data_obj.get_data()
+            for ind in range(4):
+                data_obj.rot_index = ind
+                ascii_cords = data_obj.get_data()
 
-                    abb_y = 2
-                    if not all([(pos_x + x, abb_y + y) in all_positions for x, y in ascii_cords]):
-                        possible += 0
-                    else:
-                        possible += 1
-
-                if possible != 0:
-                    for index in range(4):
-                        data_obj.rot_index = index
-                        ascii_cords = data_obj.get_data()
-                        pos_y = 0
-                        done = False
-
-                        while not done:
-                            if not all([(pos_x + x, pos_y + 1 + y) in all_positions for x, y in ascii_cords]):
-                                final_global_cords = [(x + pos_x, y + pos_y) for x, y in ascii_cords]
-                                # check validity of rotation states
-                                if all([cord in all_positions for cord in final_global_cords]):
-                                    all_configurations.append(((pos_x, pos_y), index, final_global_cords))
-
-                                done = True
-                            else:
-                                pos_y += 1
+                abb_y = 2
+                if not all([(pos_x + x, abb_y + y) in all_positions for x, y in ascii_cords]):
+                    possible += 0
                 else:
-                    continue
+                    possible += 1
 
-            self.all_configurations_per_piece[piece_id] = all_configurations
+            if possible != 0:
+                for index in range(4):
+                    data_obj.rot_index = index
+                    ascii_cords = data_obj.get_data()
+                    pos_y = 0
+                    done = False
 
-    def set_all_configurations(self, current_piece):
-        self.all_configurations = self.all_configurations_per_piece[current_piece.str_id]
+                    while not done:
+                        if not all([(pos_x + x, pos_y + 1 + y) in all_positions for x, y in ascii_cords]):
+                            final_global_cords = [(x + pos_x, y + pos_y) for x, y in ascii_cords]
+                            # check validity of rotation states
+                            if all([cord in all_positions for cord in final_global_cords]):
+                                all_configurations.append(((pos_x, pos_y), index, final_global_cords))
+
+                            done = True
+                        else:
+                            pos_y += 1
+            else:
+                continue
+
+        self.all_configurations = all_configurations
 
     def get_piece_mapping(self, current_piece):
         mapping = [0 for _ in range(7)]
@@ -78,10 +74,7 @@ class AI_Agent:
 
     def update_agent(self, current_piece):
         self.update_field()
-        self.get_possible_configurations()
-        self.set_all_configurations(current_piece)
-
-        self.heuris.update_field(self.field)
+        self.get_possible_configurations(current_piece)
 
     def update_field(self):
         self.field = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
@@ -106,6 +99,8 @@ class AI_Agent:
 
                 # pass that as the field to be used to get heuristics
                 self.heuris.update_field(self.field)
+
+                # print(self.heuris.print_num_grid())
 
                 # access info from heuristics file
                 possible_reward = self.heuris.get_reward()

@@ -30,7 +30,7 @@ class AI_Agent:
         data_obj = data.Data(current_piece.str_id, None)
         all_configurations = []
 
-        for pos_x in range(self.columns):
+        for pos_x in range(-3, self.columns+3):
             possible = 0
 
             for ind in range(4):

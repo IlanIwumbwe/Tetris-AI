@@ -220,7 +220,7 @@ class Collision:
         srs = SRS(piece)
 
         if action_space[move] == 'cw':
-            piece.rot_index = Mod(piece.rot_index + 1, 4)
+            piece.rot_index = (piece.rot_index + 1) % 4
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
             try:
@@ -230,7 +230,7 @@ class Collision:
                 pass
 
         elif action_space[move] == 'ccw':
-            piece.rot_index = Mod(piece.rot_index - 1, 4)
+            piece.rot_index = (piece.rot_index - 1) % 4
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
             try:
@@ -461,9 +461,6 @@ def get_rotation_cords(srs, dir, piece):
         grid_cords = [(x + piece.x, y + piece.y) for x, y in ascii_cords]
 
     return grid_cords
-
-def Mod(n, d):  # NUMERATOR, DENOMINATOR
-    return (n % d + d) % d
 
 class Tetris:
     def __init__(self):

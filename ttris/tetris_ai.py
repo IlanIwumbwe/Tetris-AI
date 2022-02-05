@@ -90,16 +90,6 @@ mixer.music.load('tetris-gameboy-02.ogg')
 mixer.music.play(-1)
 """
 
-def valid_space(piece, grid):  # piece is an object
-    # valid positions if they're blank
-    positions = [[(j, i) for j in range(COLUMNS) if grid[i][j] == WHITE] for i in range(ROWS)]
-    valid_positions = [tupl for pos in positions for tupl in pos]  # flatten
-    x_pos = piece.current_position()
-
-    for i in x_pos:
-        if i not in valid_positions:
-            return False
-    return True
 
 class SRS:
     def __init__(self, piece):  # piece is an object
@@ -126,6 +116,7 @@ class SRS:
 
         # get relative cords to centre
         for x, y in global_cords:
+            relative_cords.append((x - c_x, y - c_y))
             relative_cords.append((x - c_x, y - c_y))
 
         if clockwise:
@@ -381,6 +372,18 @@ class Board:
                                      (top_left_x + j * block_size, top_left_y + i * block_size, block_size, block_size),
                                      2)
 
+    def score_game(self, cleared):
+        if cleared == 1:
+            return 40 + (40 * self.level)
+        elif cleared == 2:
+            return 100 + (100 * self.level)
+        elif cleared == 3:
+            return 300 + (300 * self.level)
+        elif cleared == 4:
+            return 1200 + (1200 * self.level)
+        else:
+            return 0
+
     def clear_rows(self, grid):
         cleared_row = 0
         cleared_rows = 0
@@ -408,7 +411,7 @@ class Board:
                     position)  # .pop here removes colours from all rows above, and places them in their new positions
 
         self.lines += cleared_rows
-        self.score += score_game(cleared_rows, self.level)
+        self.score += self.score_game(cleared_rows)
 
         return cleared_rows
 
@@ -447,48 +450,20 @@ class Piece_Gne:
         p.pieces_dealt += 1
         return p
 
-
 def get_rotation_cords(srs, dir, piece):
     data_for_I = data.Data('I', piece.rot_index).get_data()
 
     if piece.str_id == 'I':
-        lowest_block = sorted(data_for_I, key=lambda x: x[1])[-1]
-
-        l_x, l_y = lowest_block
-
-        grid_cords = [((l_x - x) + piece.x, (l_y - y) + piece.y) for x, y in data_for_I]
+        grid_cords = [(x + piece.x, y + piece.y) for x, y in data_for_I]
     else:
         ascii_cords = srs.rotation(True, piece.state) if dir == 'cw' else srs.rotation(False, piece.state)
-        lowest_block = sorted(ascii_cords, key=lambda x: x[1])[-1]
 
-        l_x, l_y = lowest_block
-
-        grid_cords = [((l_x - x) + piece.x, (l_y - y) + piece.y) for x, y in ascii_cords]
+        grid_cords = [(x + piece.x, y + piece.y) for x, y in ascii_cords]
 
     return grid_cords
 
-
-def score_game(cleared, level):
-    # more to be done
-    if cleared == 1:
-        return 40 + (40 * level)
-    elif cleared == 2:
-        return 100 + (100 * level)
-    elif cleared == 3:
-        return 300 + (300 * level)
-    elif cleared == 4:
-        return 1200 + (1200 * level)
-    else:
-        return 0
-
-
-def get_data(piece, rot_index):
-    return data.Data(piece, rot_index).get_data()
-
-
 def Mod(n, d):  # NUMERATOR, DENOMINATOR
     return (n % d + d) % d
-
 
 class Tetris:
     def __init__(self):
@@ -528,7 +503,7 @@ class Tetris:
 
         self.best_move = None
 
-    def draw_window(self):  # pass instance of board
+    def draw_window(self, record):  # pass instance of board
         pygame.font.init()
 
         font = pygame.font.Font(f, 15)
@@ -538,13 +513,15 @@ class Tetris:
 
         score = font.render(f'Score: {self.board.score}', True, (0, 0, 0))
         lines = font.render(f'Lines: {self.board.lines}', True, (0, 0, 0))
-        level = font.render(f'Level: {self.board.level}', True, (0, 0, 0))
+        tetrises = font.render(f'Tetrises: {self.tetrises}', True, (0, 0, 0))
+        rec =  font.render(f'HighScore: {record}', True, (0, 0, 0))
         next_text = font.render('NEXT PIECE', True, (0, 0, 0))
         hold_text = font.render('HOLD PIECE', True, (0, 0, 0))
 
         self.win.blit(score, (pos_x - 200, pos_y + 50))
         self.win.blit(lines, (pos_x - 200, pos_y + 80))
-        self.win.blit(level, (pos_x - 200, pos_y + 110))
+        self.win.blit(tetrises, (pos_x - 200, pos_y + 110))
+        self.win.blit(rec, (pos_x - 200, pos_y + 140))
         self.win.blit(next_text, (pos_x - 200, pos_y - 90))
         self.win.blit(hold_text, (pos_x - 90, pos_y - 90))
 
@@ -558,13 +535,13 @@ class Tetris:
             file.write(f'\nScore: {self.score} ......  Lines: {self.lines}')
 
     def lost(self):
-        if self.current_piece.pieces_dealt == 500:
+        """if self.current_piece.pieces_dealt == 500:
             return True
-        else:
-            # if piece touches top of grid, its a loss
-            for pos in self.landed:
-                if pos[1] <= 1:
-                    return True
+        else:"""
+        # if piece touches top of grid, its a loss
+        for pos in self.landed:
+            if pos[1] <= 1:
+                return True
 
         return False
 
@@ -595,7 +572,7 @@ class Tetris:
         self.next_piece = self.generate.get_piece()
         self.change_piece = False
 
-    def game_logic(self):
+    def game_logic(self, record):
         self.grid = self.board.create_grid()
 
         self.win.fill(BG)
@@ -645,13 +622,13 @@ class Tetris:
             self.held_piece = None
             self.unhold_piece = False
 
-        self.draw_window()
+        self.draw_window(record)
 
         if self.lost():
             self.run = False
 
     def fitness_func(self):
-        return self.lines + self.tetrises*1000
+        return self.tetrises*50 + self.score*5
 
     def make_move(self, move, piece):
         if action_space[move] == 'down':
@@ -687,7 +664,7 @@ class Tetris:
     # testing computer to make raw key presses based on best move
     def make_ai_move(self):  # collision is an obj
         current_config = self.current_piece.get_config()  # exp : (3, (7, 21), '[(7, 20), (8, 20), (9, 20), (7, 21)]')
-        target_config = self.best_move  # exp: (0, (7, 21), '[(6, 19), (7, 19), (7, 20), (7, 21)]', some reward)
+        target_config = self.best_move  # exp: (0, (7, 21), '[(6, 19), (7, 19), (7, 20), (7, 21)]')
 
         cu_x, cu_y = current_config[1]
         t_x, t_y = target_config[1]
@@ -697,7 +674,7 @@ class Tetris:
 
         block_pos = target_config[2]
 
-        diff = cu_rot_state - t_rot_state
+        """diff = cu_rot_state - t_rot_state
         rotation_options = [pygame.K_UP, pygame.K_w]
 
         if abs(diff) == 2:
@@ -715,12 +692,12 @@ class Tetris:
                 self.make_move(pygame.K_RIGHT, self.current_piece)
         else:
             for _ in range(abs(moves)):
-                self.make_move(pygame.K_LEFT, self.current_piece)
+                self.make_move(pygame.K_LEFT, self.current_piece)"""
 
         for i in block_pos:
             self.landed[i] = self.current_piece.colour
 
-        time.sleep(0.0005)
+        time.sleep(0.005)
         self.change_piece = True
 
 

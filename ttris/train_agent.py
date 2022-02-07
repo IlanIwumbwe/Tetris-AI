@@ -5,6 +5,7 @@ import neat
 import pickle
 from nueralnet import Population
 
+
 class AI_Agent:
     def __init__(self):  # piece is an object
         self.rows = tetris_ai.ROWS
@@ -17,7 +18,6 @@ class AI_Agent:
         self.move_data = {}
         self.final_positions = {}
         self.all_pieces = ['I', 'S', 'O', 'Z', 'T', 'L', 'J']
-        self.all_configurations_per_piece = {}
         self.all_configurations = []
         self.cord_scores = {}
         self.actions_scores = []
@@ -65,13 +65,6 @@ class AI_Agent:
 
         self.all_configurations = all_configurations
 
-    def get_piece_mapping(self, current_piece):
-        mapping = [0 for _ in range(7)]
-
-        mapping[self.all_pieces.index(current_piece.str_id)] = 1
-
-        return mapping
-
     def update_agent(self, current_piece):
         self.update_field()
         self.get_possible_configurations(current_piece)
@@ -103,11 +96,7 @@ class AI_Agent:
                 # print(self.heuris.print_num_grid())
 
                 # access info from heuristics file
-                possible_reward = self.heuris.get_reward()
                 board_state = self.heuris.get_heuristics()
-
-                # get piece mapping
-                mapping = self.get_piece_mapping(current_piece)
 
                 # prepare full board state
                 full_board_state = board_state
@@ -121,7 +110,7 @@ class AI_Agent:
 
                 # check all positions above the piece, make sure they are empty, otherwise it is physically impossible for them to be there
                 #if all([self.field[y_above][fin_x] == 0 for fin_x, fin_y in positions for y_above in range(fin_y) if (fin_x, y_above) not in positions]):
-                score_moves.append((index, cord, positions, possible_reward, move_score))
+                score_moves.append((index, cord, positions, move_score))
 
             best_move = max(score_moves,  key= lambda x: x[-1])
 
@@ -142,22 +131,10 @@ class AI_Agent:
 class Trainer:
     def __init__(self):
         self.agent = AI_Agent()
-        self.new_pop = None
-        self.old_pop = None
         self.record = 0
-        self.epochs = 10000
-        self.games = 3
-        self.pop_size = 100
 
     def eval_genomes(self, genomes, config):
-        """for epoch in range(self.epochs):
-            self.new_pop = Population(self.pop_size, self.old_pop)
-            print('________________________________')
-            print(f'Epoch: {epoch+1}')"""
         for genome_id, genome in genomes:
-            #print(f'Member: {vector+1}')
-            # print(f'{self.new_pop.models[vector]}')
-            #print('_________________________________')
             current_fitness = 0
             tetris_game = tetris_ai.Tetris()
 
@@ -188,16 +165,11 @@ class Trainer:
 
                 if not tetris_game.run:
                     genome.fitness = current_fitness
-
-                    # reset to a new tetris game, and reset the agent as well
                     break
 
-            if current_fitness > self.record:
-                self.record = current_fitness
-
-                # print(f'Record: {self.record} *******')
-
-        # self.old_pop = self.new_pop
+            if tetris_game.score > self.record:
+                print(f'Record: {tetris_game.score}')
+                self.record = tetris_game.score
 
     def train(self):
         config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
@@ -208,6 +180,7 @@ class Trainer:
         p.add_reporter(neat.StdOutReporter(True))
         stats = neat.StatisticsReporter()
         p.add_reporter(stats)
+        # p.add_reporter(neat.Checkpointer(5))
 
         winner = p.run(self.eval_genomes)
 
@@ -219,5 +192,6 @@ if __name__ == '__main__':
     trainer = Trainer()
 
     trainer.train()
+
 
 

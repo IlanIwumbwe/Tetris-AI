@@ -3,8 +3,6 @@ import heuristics as hu
 import data
 import neat
 import pickle
-from nueralnet import Population
-
 
 class AI_Agent:
     def __init__(self):  # piece is an object
@@ -58,6 +56,14 @@ class AI_Agent:
                                 all_configurations.append(((pos_x, pos_y), index, final_global_cords))
 
                             done = True
+
+                        elif not all([(pos_x + x, pos_y + y) in all_positions for x, y in ascii_cords]):
+                            final_global_cords = [(x + pos_x, y + pos_y - 1) for x, y in ascii_cords]
+                            # check validity of rotation states
+                            if all([cord in all_positions for cord in final_global_cords]):
+                                all_configurations.append(((pos_x, pos_y), index, final_global_cords))
+
+                            done = True
                         else:
                             pos_y += 1
             else:
@@ -92,8 +98,6 @@ class AI_Agent:
 
                 # pass that as the field to be used to get heuristics
                 self.heuris.update_field(self.field)
-
-                # print(self.heuris.print_num_grid())
 
                 # access info from heuristics file
                 board_state = self.heuris.get_heuristics()

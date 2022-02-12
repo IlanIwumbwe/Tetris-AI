@@ -6,3 +6,5 @@ Optimisation using a genetic algorithm to make an AI that plays good Tetris
 - train-agent_scratch.py uses a genetic algorithm written from scratch, without next piece knowledge
 
 Best results so far is over 600k score by the genetic algorithm from scratch by generation 4. 
+
+The population and nueral net are coded in neuralnet.py

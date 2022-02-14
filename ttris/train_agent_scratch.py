@@ -1,9 +1,10 @@
 import tetris_ai
 import heuristics as hu
 import data
-import neat
 import pickle
 from nueralnet import Population
+import matplotlib.pyplot as plt
+from matplotlib import style
 
 class AI_Agent:
     def __init__(self):  # piece is an object
@@ -93,28 +94,20 @@ class AI_Agent:
             score_moves = []
 
             for cord, index, positions in self.all_configurations:
-                # fill in block positions in test field
                 for x, y in positions:
                     self.field[y][x] = 1
 
-                # pass that as the field to be used to get heuristics
                 self.heuris.update_field(self.field)
 
-                # access info from heuristics file
                 board_state = self.heuris.get_heuristics()
 
-                # prepare full board state
                 full_board_state = board_state
 
-                # get score from nueral net
                 move_score = self.nueral_net.query(full_board_state)[0]
 
-                # EMPTY THE POSITIONS!
                 for x, y in positions:
                     self.field[y][x] = 0
 
-                # check all positions above the piece, make sure they are empty, otherwise it is physically impossible for them to be there
-                #if all([self.field[y_above][fin_x] == 0 for fin_x, fin_y in positions for y_above in range(fin_y) if (fin_x, y_above) not in positions]):
                 score_moves.append((index, cord, positions, move_score))
 
             best_move = max(score_moves,  key= lambda x: x[-1])
@@ -140,12 +133,73 @@ class Trainer:
         self.record = 0
         self.new_pop = None
         self.old_pop = None
-        self.epochs = 500
+        self.epochs = 25
+        self.checkpoint = 2
+        self.epoch_data = {}
 
-    def eval(self):
-        for epoch in range(self.epochs):
+    def eval(self, load_population):
+        if load_population:
+            try:
+                with open("population.pkl", 'rb') as file:
+                    self.new_pop = pickle.load(file)
+            except FileNotFoundError:
+                self.new_pop = Population(1000, self.old_pop)
+        else:
             self.new_pop = Population(1000, self.old_pop)
-            print(f'EPOCH: {epoch}')
+
+        scores = []
+        print(f'EPOCH: {1}')
+        print(f'HIGHSCORE: {self.record}')
+        for neural_index in range(self.new_pop.size):
+            current_fitness = 0
+            tetris_game = tetris_ai.Tetris()
+
+            self.agent = AI_Agent()
+            self.agent.nueral_net = self.new_pop.models[neural_index]
+
+            while tetris_game.run:
+                self.agent.landed = tetris_game.landed
+
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
+                tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
+
+                tetris_game.game_logic()
+
+                # make the move
+                tetris_game.make_ai_move()
+
+                current_fitness += tetris_game.fitness_func()
+
+                self.agent.landed = tetris_game.landed
+
+                # update the agent with useful info to find the best move
+                self.agent.update_agent(tetris_game.current_piece)
+
+                if tetris_game.change_piece:
+                    tetris_game.change_state()
+
+                if not tetris_game.run:
+                    self.new_pop.fitnesses[neural_index] = current_fitness
+                    break
+
+            scores.append(tetris_game.score)
+            if tetris_game.score > self.record:
+                self.record = tetris_game.score
+                print(f'HIGHSCORE: {self.record}')
+
+        self.epoch_data[1] = (
+            sum(self.new_pop.fitnesses) / 1000, self.new_pop.fitnesses, sum(scores) / 1000, scores)
+        self.old_pop = self.new_pop
+
+        print(f'Best fitness: {max(self.epoch_data[1])}')
+        print(f'Average fitness: {self.epoch_data[0]}')
+
+        for epoch in range(1, self.epochs):
+            print('__________________________________________')
+            scores = []
+            self.new_pop = Population(1000, self.old_pop)
+            print(f'EPOCH: {epoch+1}')
             print(f'HIGHSCORE: {self.record}')
             for neural_index in range(self.new_pop.size):
                 current_fitness = 0
@@ -160,7 +214,6 @@ class Trainer:
                     # update the agent with useful info to find the best move
                     self.agent.update_agent(tetris_game.current_piece)
                     tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
-
                     tetris_game.game_logic()
 
                     # make the move
@@ -180,33 +233,59 @@ class Trainer:
                         self.new_pop.fitnesses[neural_index] = current_fitness
                         break
 
+                scores.append(tetris_game.score)
                 if tetris_game.score > self.record:
                     self.record = tetris_game.score
                     print(f'HIGHSCORE: {self.record}')
 
+            if (epoch+1) % self.checkpoint == 0:
+                with open("population.pkl", 'wb') as file:
+                    pickle.dump(self.new_pop, file)
+
+            self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/1000, self.new_pop.fitnesses, sum(scores)/1000, scores)
             self.old_pop = self.new_pop
 
-    def train(self):
-        config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet,
-                             neat.DefaultStagnation, 'config-feedfoward.txt')
+        print(f'Best fitness: {max(self.epoch_data[1])}')
+        print(f'Average fitness: {self.epoch_data[0]}')
 
-        p = neat.Population(config)
+        # plot graphs after epochs are done
+        style.use("ggplot")
 
-        p.add_reporter(neat.StdOutReporter(True))
-        stats = neat.StatisticsReporter()
-        p.add_reporter(stats)
-        # p.add_reporter(neat.Checkpointer(5))
+        # fitness graph
+        for epoch, d in self.epoch_data.items():
+            for fitness in d[1]:
+                plt.scatter(epoch, fitness)
 
-        winner = p.run(self.eval)
+            plt.plot(epoch, d[0], color="red")
 
-        with open('winner.pkl', 'wb') as output:
-            pickle.dump(winner, output, 1)
+        plt.title("Fitness against epochs")
+        plt.xlabel("Epoch")
+        plt.ylabel("Fitness")
 
+        plt.show()
+
+        # Scores graph
+        for epoch, d in self.epoch_data.items():
+            for score in d[3]:
+                plt.scatter(epoch, score)
+
+            plt.plot(epoch, d[2], color="red")
+
+        plt.title("Score against epochs")
+        plt.xlabel("Epoch")
+        plt.ylabel("Score")
+
+        plt.show()
 
 if __name__ == '__main__':
     trainer = Trainer()
 
-    trainer.eval()
+    load = input('LOAD POPULATION: ')
+
+    if load == 'Y':
+        trainer.eval(True)
+    else:
+        trainer.eval(False)
 
 
 

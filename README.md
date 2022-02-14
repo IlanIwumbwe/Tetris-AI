@@ -1,6 +1,6 @@
 # Tetris
 
-This code is for my NEA project, A level computer science
+This code is for my NEA project, A level computer science. 
 Optimisation using a genetic algorithm to make an AI that plays good Tetris
 
 - train_agent.py uses NEAT-python module without next piece knowledge

@@ -126,6 +126,7 @@ class AI_Agent:
         for i in self.field:
             print(i)
 
+saved_models = []
 
 class Trainer:
     def __init__(self):
@@ -139,12 +140,8 @@ class Trainer:
 
     def eval(self, load_population):
         if load_population:
-            try:
-                with open("population.pkl", 'rb') as file:
-                    self.new_pop = Population(1000, None)
-                    self.new_pop.models = pickle.load(file)
-            except FileNotFoundError:
-                self.new_pop = Population(1000, self.old_pop)
+            self.new_pop = Population(1000, self.old_pop)
+            self.new_pop.models = saved_models[-1]
         else:
             self.new_pop = Population(1000, self.old_pop)
 
@@ -243,8 +240,7 @@ class Trainer:
             self.old_pop = self.new_pop
 
             if (epoch+1) % self.checkpoint == 0:
-                with open("population.pkl", 'wb') as file:
-                    pickle.dump(self.old_pop.models, file)
+                saved_models.append(self.old_pop.models)
 
             print(f'Best fitness: {max(self.epoch_data[epoch][1])}')
             print(f'Average fitness: {self.epoch_data[epoch][0]}')

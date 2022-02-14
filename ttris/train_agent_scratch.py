@@ -141,7 +141,8 @@ class Trainer:
         if load_population:
             try:
                 with open("population.pkl", 'rb') as file:
-                    self.new_pop = pickle.load(file)
+                    self.new_pop = Population(1000, None)
+                    self.new_pop.models = pickle.load(file)
             except FileNotFoundError:
                 self.new_pop = Population(1000, self.old_pop)
         else:
@@ -238,12 +239,12 @@ class Trainer:
                     self.record = tetris_game.score
                     print(f'HIGHSCORE: {self.record}')
 
-            if (epoch+1) % self.checkpoint == 0:
-                with open("population.pkl", 'wb') as file:
-                    pickle.dump(self.new_pop, file)
-
             self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/1000, self.new_pop.fitnesses, sum(scores)/1000, scores)
             self.old_pop = self.new_pop
+
+            if (epoch+1) % self.checkpoint == 0:
+                with open("population.pkl", 'wb') as file:
+                    pickle.dump(self.old_pop.models, file)
 
             print(f'Best fitness: {max(self.epoch_data[epoch][1])}')
             print(f'Average fitness: {self.epoch_data[epoch][0]}')

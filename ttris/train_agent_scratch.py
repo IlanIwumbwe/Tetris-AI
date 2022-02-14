@@ -192,8 +192,8 @@ class Trainer:
             sum(self.new_pop.fitnesses) / 1000, self.new_pop.fitnesses, sum(scores) / 1000, scores)
         self.old_pop = self.new_pop
 
-        print(f'Best fitness: {max(self.epoch_data[1])}')
-        print(f'Average fitness: {self.epoch_data[0]}')
+        print(f'Best fitness: {max(self.epoch_data[1][1])}')
+        print(f'Average fitness: {self.epoch_data[1][0]}')
 
         for epoch in range(1, self.epochs):
             print('__________________________________________')
@@ -245,8 +245,8 @@ class Trainer:
             self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/1000, self.new_pop.fitnesses, sum(scores)/1000, scores)
             self.old_pop = self.new_pop
 
-        print(f'Best fitness: {max(self.epoch_data[1])}')
-        print(f'Average fitness: {self.epoch_data[0]}')
+            print(f'Best fitness: {max(self.epoch_data[epoch][1])}')
+            print(f'Average fitness: {self.epoch_data[epoch][0]}')
 
         # plot graphs after epochs are done
         style.use("ggplot")

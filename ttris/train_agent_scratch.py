@@ -137,62 +137,12 @@ class Trainer:
         self.epoch_data = {}
 
     def eval(self, load_population):
+        """ WHole population object is pickled"""
         if load_population:
-            self.new_pop = Population(1000, self.old_pop)
             with open("population.pkl", "rb") as f:
-                self.new_pop.models = pickle.load(f)
-        else:
-            self.new_pop = Population(1000, self.old_pop)
+                self.old_pop = pickle.load(f)
 
-        scores = []
-        print(f'EPOCH: {1}')
-        print(f'HIGHSCORE: {self.record}')
-        for neural_index in range(self.new_pop.size):
-            current_fitness = 0
-            tetris_game = tetris_ai.Tetris()
-
-            self.agent = AI_Agent()
-            self.agent.nueral_net = self.new_pop.models[neural_index]
-
-            while tetris_game.run:
-                self.agent.landed = tetris_game.landed
-
-                # update the agent with useful info to find the best move
-                self.agent.update_agent(tetris_game.current_piece)
-                tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
-
-                tetris_game.game_logic()
-
-                # make the move
-                tetris_game.make_ai_move()
-
-                current_fitness += tetris_game.fitness_func()
-
-                self.agent.landed = tetris_game.landed
-
-                # update the agent with useful info to find the best move
-                self.agent.update_agent(tetris_game.current_piece)
-
-                if tetris_game.change_piece:
-                    tetris_game.change_state()
-
-                if not tetris_game.run:
-                    self.new_pop.fitnesses[neural_index] = current_fitness
-                    break
-
-            scores.append(tetris_game.score)
-            if tetris_game.score > self.record:
-                self.record = tetris_game.score
-                print(f'HIGHSCORE: {self.record}')
-
-        self.epoch_data[1] = (
-            sum(self.new_pop.fitnesses) / 1000, self.new_pop.fitnesses, sum(scores) / 1000, scores)
-        self.old_pop = self.new_pop
-
-        print(f'Best fitness: {max(self.epoch_data[1][1])}')
-        print(f'Average fitness: {self.epoch_data[1][0]}')
-
-        for epoch in range(1, self.epochs):
+        for epoch in range(self.epochs):
             print('__________________________________________')
             scores = []
             self.new_pop = Population(1000, self.old_pop)
@@ -239,13 +189,12 @@ class Trainer:
             self.old_pop = self.new_pop
 
             if (epoch+1) % self.checkpoint == 0:
-                models = self.old_pop.models
                 print('Saving models///////......')
-                with open("population.pkl", "wb") as f:
-                    pickle.dump(models, f)
+                self.old_pop.save_population(epoch)
+                print('Saved successfully////////////////')
 
-            print(f'Best fitness: {max(self.epoch_data[epoch][1])}')
-            print(f'Average fitness: {self.epoch_data[epoch][0]}')
+            print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
+            print(f'Average fitness: {self.epoch_data[epoch+1][0]}')
 
         # plot graphs after epochs are done
         style.use("ggplot")

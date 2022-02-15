@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.special
+import pickle
 
 class Nueral_net:
     def __init__(self, input_nodes, hidden_a_nodes, hidden_b_nodes, output_nodes):
@@ -138,3 +139,8 @@ class Population:
                         noise = np.random.uniform(-mutation_power, mutation_power)
 
                         row[ind] += noise
+
+    def save_population(self, epoch_number):
+        path = f"./populations/{epoch_number}population.pkl"
+        with open(path, "wb") as f:
+            pickle.dump(self, f)

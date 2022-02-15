@@ -64,6 +64,7 @@ class Population:
 
         # sort by order of fitness (descending)
         fitness_indices = np.argsort(probs)[::-1]
+
         for i in range(self.size):
             if i < self.size*elitism:
                 # if model within elitism critical region, select it as is
@@ -75,7 +76,7 @@ class Population:
                 # setup models from those indices
                 parent_a, parent_b = self.old_models[a], self.old_models[b]
                 child = Nueral_net(input_size, hidden_size_a, hidden_size_b, output_size)
-                a_fitness, b_fitness = self.fitnesses[a], self.fitnesses[b]
+                a_fitness, b_fitness = self.old_fitnesses[a], self.old_fitnesses[b]
 
                 if a_fitness == 0 and b_fitness == 0:
                     child.wi_ha = np.zeros((hidden_size_a, input_size))
@@ -122,25 +123,17 @@ class Population:
             for row in model.wi_ha:
                 for ind, col in enumerate(row):
                     if np.random.random() < mutation_prob:
-                        noise = np.random.uniform(-mutation_power, mutation_power)
-
-                        row[ind] += noise
+                        row[ind] += np.random.uniform(-mutation_power, mutation_power)
 
             for row in model.wha_hb:
                 for ind, col in enumerate(row):
                     if np.random.random() < mutation_prob:
-                        noise = np.random.uniform(-mutation_power, mutation_power)
-
-                        row[ind] += noise
+                        row[ind] += np.random.uniform(-mutation_power, mutation_power)
 
             for row in model.whb_o:
                 for ind, col in enumerate(row):
                     if np.random.random() < mutation_prob:
-                        noise = np.random.uniform(-mutation_power, mutation_power)
+                        row[ind] += np.random.uniform(-mutation_power, mutation_power)
 
-                        row[ind] += noise
 
-    def save_population(self, epoch_number):
-        path = f"./populations/{epoch_number}population.pkl"
-        with open(path, "wb") as f:
-            pickle.dump(self, f)
+

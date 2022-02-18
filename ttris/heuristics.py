@@ -24,10 +24,6 @@ class Heuristics:
     def min_height(self):
         return min([self.column_height(col) for col in range(self.width)])
 
-    # altitude delta
-    def alt_delta(self):
-        return self.max_height()-self.min_height()
-
     # number of holes in a column
     def column_holes(self, column):
         col_height = self.column_height(column)
@@ -99,7 +95,7 @@ class Heuristics:
         depths = []
         for col in range(self.width):
             if col == 0:
-                possible_depth = self.column_height(col) - self.column_height(col+1)
+                possible_depth = self.column_height(col+1) - self.column_height(col)
                 depths.append(possible_depth) if possible_depth > 0 else depths.append(0)
             elif col == self.width-1:
                 possible_depth = self.column_height(col-1) - self.column_height(col)
@@ -109,7 +105,7 @@ class Heuristics:
                 possible_depth_left = pl if pl > 0 else 0
                 pr = self.column_height(col+1) - self.column_height(col)
                 possible_depth_right = pr if pr > 0 else 0
-                depths.append(possible_depth_right) if possible_depth_right > possible_depth_left else depths.append(possible_depth_left)
+                depths.append(possible_depth_right) if possible_depth_right >= possible_depth_left else depths.append(possible_depth_left)
 
         return max(depths)
 
@@ -133,5 +129,5 @@ class Heuristics:
             print(i)
 
     def get_heuristics(self):
-        return [self.deepest_well(), self.alt_delta(), self.total_height(), self.total_holes(), self.bumpiness(), self.lines_cleared(), self.row_transitions(), self.std_heights(), self.pits(), self.col_transitions()]
+        return [self.deepest_well(), self.total_height(), self.total_holes(), self.bumpiness(), self.lines_cleared(), self.row_transitions(), self.std_heights(), self.pits(), self.col_transitions()]
 

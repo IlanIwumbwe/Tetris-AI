@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.special
-import pickle
 
 class Nueral_net:
     def __init__(self, input_nodes, hidden_a_nodes, hidden_b_nodes, output_nodes):
@@ -29,9 +28,9 @@ class Nueral_net:
 
         return final_outputs
 
-input_size = 7
-hidden_size_a = 5
-hidden_size_b = 5
+input_size = 9
+hidden_size_a = 6
+hidden_size_b = 6
 output_size = 1
 
 # genetic algorithm

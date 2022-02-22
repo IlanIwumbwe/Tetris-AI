@@ -132,9 +132,14 @@ class Trainer:
         self.record = 0
         self.new_pop = None
         self.old_pop = None
-        self.epochs = 25
+        self.epochs = 10
         self.checkpoint = 2
         self.epoch_data = {}
+
+    def save_population(self, epoch_number):
+        path = f"./populations/{epoch_number}population.pkl"
+        with open(path, "wb") as f:
+            pickle.dump(self.old_pop, f)
 
     def eval(self, load_population):
         """ WHole population object is pickled"""
@@ -190,7 +195,7 @@ class Trainer:
 
             """if (epoch+1) % self.checkpoint == 0:
                 print('Saving models///////......')
-                self.old_pop.save_population(epoch)
+                self.save_population(epoch)
                 print('Saved successfully////////////////')"""
 
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
@@ -199,12 +204,18 @@ class Trainer:
         # plot graphs after epochs are done
         style.use("ggplot")
 
-        # fitness graph
-        for epoch, d in self.epoch_data.items():
-            for fitness in d[1]:
-                plt.scatter(epoch, fitness)
+        epochs = [e for e in self.epoch_data.keys()]
+        av_fitness = [d[0] for d in self.epoch_data.values()]
+        fitnesses = [d[1] for d in self.epoch_data.values()]
+        av_score = [d[2] for d in self.epoch_data.values()]
+        scores = [d[3] for d in self.epoch_data.values()]
 
-            plt.plot(epoch, d[0], color="red")
+        # fitness graph
+        for epoch in epochs:
+            for fitness in fitnesses:
+                plt.scatter([epoch for _ in range(len(fitness))], fitness)
+
+        plt.plot(epochs, av_fitness, color="red")
 
         plt.title("Fitness against epochs")
         plt.xlabel("Epoch")
@@ -213,11 +224,11 @@ class Trainer:
         plt.show()
 
         # Scores graph
-        for epoch, d in self.epoch_data.items():
-            for score in d[3]:
-                plt.scatter(epoch, score)
+        for epoch in epochs:
+            for score in scores:
+                plt.scatter([epoch for _ in range(len(score))], score)
 
-            plt.plot(epoch, d[2], color="red")
+        plt.plot(epochs, av_score, color="red")
 
         plt.title("Score against epochs")
         plt.xlabel("Epoch")

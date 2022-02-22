@@ -5,7 +5,6 @@ class Heuristics:
         self.width = columns
         self.height = rows
         self.field = [[0 for _ in range(self.width)] for _ in range(self.height)]
-        self.valids = [(row, col) for row in range(self.height) for col in range(self.width)]
 
     def update_field(self, field):  # get new field with updated 1s
         self.field = field
@@ -118,10 +117,6 @@ class Heuristics:
                 lines += 1
 
         return lines
-
-    def print_stats(self):
-        print(f'a. Max H: {self.max_height()} \nb. Total Holes: {self.total_holes()} \nc. Bumpiness: {self.bumpiness()} '
-              f'\nd. Heights stdDEV:{self.std_heights()} \nPits: {self.pits()}')
 
     def print_num_grid(self):
         print(' NEW FRAME ....................................')

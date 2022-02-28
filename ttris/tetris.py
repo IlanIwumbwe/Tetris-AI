@@ -502,6 +502,7 @@ class Tetris:
         self.score = 0
         self.board = Board(self.landed, self.lines, self.score)
         self.collision = Collision()
+        self.collision.create_field(self.landed)
         self.tetrises = 0
         self.grid = self.board.create_grid()
 

@@ -65,7 +65,7 @@ BG = (128, 128, 128)
 colours = {'I': CYAN, 'S': BLUE, 'O': PINK, 'Z': YELLOW, 'T': ORANGE, 'L': GREEN, 'J': RED}
 
 action_space = {pygame.K_DOWN: 'down', pygame.K_RIGHT: 'right', pygame.K_LEFT: 'left', pygame.K_UP: 'cw',
-                pygame.K_w: 'ccw', pygame.K_TAB: 'hd', pygame.K_SPACE: 'hold', pygame.K_BACKSPACE: 'unhold'}
+                pygame.K_w: 'ccw', pygame.K_TAB: 'hd'}
 
 BOUNDARY = 1
 ROWS = 20 + 2  # 2 extra rows for spawning
@@ -156,7 +156,6 @@ class Piece:
         srs = SRS(self)
         new_str = ['.' for _ in range(16)]
 
-
         if self.str_id != 'I':
             if dir == 'cw':
                 self.clockwise = True
@@ -188,7 +187,7 @@ class Piece:
         return [(r_x+self.x, r_y+self.y) for r_x, r_y in rel_cords]
 
     def get_config(self):
-        return self.rot_index, (self.x, self.y), self.current_position(), 0
+        return self.rot_index, (self.x, self.y), self.current_position()
 
 class Collision:
     def __init__(self):  # piece is an object
@@ -436,13 +435,10 @@ class Piece_Gne:
         return popped
 
     def get_piece(self):
-        rng = self.generator_function()
+        gen = self.generator_function()
+        buffer = [next(gen) for _ in range(7)]
 
-        size = 7
-
-        buffer = [next(rng) for _ in range(size)]
-
-        popped = self.pop(buffer, rng)
+        popped = self.pop(buffer, gen)
 
         p = Piece(4, 0, popped)
         p.y += 1
@@ -465,22 +461,17 @@ def get_rotation_cords(srs, dir, piece):
 class Tetris:
     def __init__(self):
         self.win = pygame.display.set_mode((width, height))
+
         # piece generation setup
         self.generate = Piece_Gne(['I', 'S', 'O', 'Z', 'T', 'L', 'J'])
-
-        # get starting piece object
         self.current_piece = self.generate.get_piece()
+        self.next_piece = self.generate.get_piece()
 
         # control parameters
         self.run = True
         self.show_piece = True
-        self.held_piece = None
         self.change_piece = False
-        self.hold_piece = False
-        self.unhold_piece = False
-
-        # get next piece
-        self.next_piece = self.generate.get_piece()
+        self.slow = False
 
         # game board setup
         self.landed = {}
@@ -491,17 +482,18 @@ class Tetris:
         self.collision.create_field(self.landed)
         self.tetrises = 0
         self.grid = self.board.create_grid()
+        self.previous_state = None
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0
+        self.fall_speed = 0.28
 
         # game clock
         self.clock = pygame.time.Clock()
 
         self.best_move = None
 
-    def draw_window(self, record):  # pass instance of board
+    def draw_window(self):  # pass instance of board
         pygame.font.init()
 
         font = pygame.font.Font(f, 15)
@@ -512,20 +504,18 @@ class Tetris:
         score = font.render(f'Score: {self.board.score}', True, (0, 0, 0))
         lines = font.render(f'Lines: {self.board.lines}', True, (0, 0, 0))
         tetrises = font.render(f'Tetrises: {self.tetrises}', True, (0, 0, 0))
-        rec =  font.render(f'HighScore: {record}', True, (0, 0, 0))
         next_text = font.render('NEXT PIECE', True, (0, 0, 0))
         hold_text = font.render('HOLD PIECE', True, (0, 0, 0))
 
         self.win.blit(score, (pos_x - 200, pos_y + 50))
         self.win.blit(lines, (pos_x - 200, pos_y + 80))
         self.win.blit(tetrises, (pos_x - 200, pos_y + 110))
-        self.win.blit(rec, (pos_x - 200, pos_y + 140))
         self.win.blit(next_text, (pos_x - 200, pos_y - 90))
         self.win.blit(hold_text, (pos_x - 90, pos_y - 90))
 
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
-        if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
+
         pygame.display.update()
 
     def update_scores(self):
@@ -570,8 +560,20 @@ class Tetris:
         self.next_piece = self.generate.get_piece()
         self.change_piece = False
 
-    def game_logic(self, record):
+    def game_logic(self):
         self.grid = self.board.create_grid()
+
+        """self.fall_time += self.clock.get_rawtime()
+        self.clock.tick()
+
+        if self.fall_time / 1000 > self.fall_speed:
+            self.fall_time = 0
+
+            if self.collision.move_works(self.current_piece, pygame.K_DOWN):
+                self.current_piece.y += 1
+            else:
+                self.board.score += 1
+                self.change_piece = True"""
 
         self.win.fill(BG)
 
@@ -580,6 +582,9 @@ class Tetris:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.run = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.slow = not self.slow
 
         piece_positions = self.current_piece.current_position()
 
@@ -593,34 +598,8 @@ class Tetris:
                         print('crushes through the wall')
                         self.run = False
 
-        # show the best move
+        self.draw_window()
         # self.board.show_best_move(self.grid, self.best_move)
-
-        '''
-        user wants to hold piece, store it in held piece, change current to next,
-        generate new piece to replace next piece
-
-        set hold piece back to false
-        '''
-        if self.hold_piece:
-            self.held_piece = self.current_piece
-            self.current_piece = self.next_piece
-            self.next_piece = self.generate.get_piece()
-            self.hold_piece = False
-
-        '''
-        user wants to unhold, piece, set hold pressed back to 0, so we reset state
-        make it spawn exactly where current piece was
-        make swap
-        '''
-        if self.unhold_piece:
-            self.held_piece.x, self.held_piece.y = self.current_piece.x, self.current_piece.y
-            self.current_piece = self.held_piece
-
-            self.held_piece = None
-            self.unhold_piece = False
-
-        self.draw_window(record)
 
         if self.lost():
             self.run = False
@@ -672,7 +651,7 @@ class Tetris:
 
         block_pos = target_config[2]
 
-        """diff = cu_rot_state - t_rot_state
+        diff = cu_rot_state - t_rot_state
         rotation_options = [pygame.K_UP, pygame.K_w]
 
         if abs(diff) == 2:
@@ -690,13 +669,16 @@ class Tetris:
                 self.make_move(pygame.K_RIGHT, self.current_piece)
         else:
             for _ in range(abs(moves)):
-                self.make_move(pygame.K_LEFT, self.current_piece)"""
+                self.make_move(pygame.K_LEFT, self.current_piece)
 
         for i in block_pos:
             self.landed[i] = self.current_piece.colour
 
-        time.sleep(0.005)
+        time.sleep(0.009)
+
         self.change_piece = True
+
+
 
 
 

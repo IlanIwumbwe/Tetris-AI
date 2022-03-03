@@ -17,7 +17,7 @@ train_agent_scratch.py now has capability to plot graphs after running all epoch
 
 A few things:
 
-The neural network and genetic algorithm coded from scratch gathered inspiration from these projects:
+This project has been inspired by these projects:
 
 - Used a gameboy emulator and pytorch to build a Tetris AI from scratch: https://towardsdatascience.com/beating-the-world-record-in-tetris-gb-with-genetics-algorithm-6c0b2f5ace9b
 - Explains use of a genetic algorithm without neural networks: https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/

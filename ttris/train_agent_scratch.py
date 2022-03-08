@@ -169,15 +169,16 @@ class Trainer:
         self.epoch_data = {}
 
     def save_population(self, epoch_number):
-        path = f"./populations/{epoch_number}population.pkl"
+        path = f"./populations/{epoch_number+1}population.pkl"
         with open(path, "wb") as f:
             pickle.dump(self.old_pop, f)
 
-    def eval(self, load_population):
+    def eval(self, load_population, epoch_number):
         """ WHole population object is pickled"""
         if load_population:
             try:
-                with open("population.pkl", "rb") as f:
+                path = f"./populations/{epoch_number}population.pkl"
+                with open(path, "rb") as f:
                     self.old_pop = pickle.load(f)
             except FileNotFoundError or FileExistsError:
                 print('File not found, or it does not exist')
@@ -271,9 +272,9 @@ if __name__ == '__main__':
     load = input('LOAD POPULATION: ')
 
     if load == 'Y':
-        trainer.eval(True)
+        trainer.eval(True, int(input('From which epoch: ')))
     else:
-        trainer.eval(False)
+        trainer.eval(False, 0)
 
 
 

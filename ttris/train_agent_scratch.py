@@ -19,15 +19,18 @@ class AI_Agent:
         self.final_positions = {}
         self.all_pieces = ['I', 'S', 'O', 'Z', 'T', 'L', 'J']
         self.all_configurations = []
+        self.next_configurations = []
+        self.next_state = None
+        self.next_piece = None
         self.cord_scores = {}
         self.actions_scores = []
         self.nueral_net = None
 
-    def get_possible_configurations(self, current_piece):
-        positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if self.field[ind_x][ind_y] == 0] for ind_x in range(self.rows)]
+    def get_possible_configurations(self, piece, field, is_next_piece):
+        positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if field[ind_x][ind_y] == 0] for ind_x in range(self.rows)]
         all_positions = [tupl for li in positions for tupl in li]
 
-        data_obj = data.Data(current_piece.str_id, None)
+        data_obj = data.Data(piece.str_id, None)
         all_configurations = []
 
         for pos_x in range(-3, self.columns+3):
@@ -71,11 +74,16 @@ class AI_Agent:
             else:
                 continue
 
-        self.all_configurations = all_configurations
+        if not is_next_piece:
+            self.all_configurations = all_configurations
+        else:
+            self.next_configurations = all_configurations
 
-    def update_agent(self, current_piece):
+    def update_agent(self, current_piece, next_piece, landed):
+        self.landed = landed
         self.update_field()
-        self.get_possible_configurations(current_piece)
+        self.get_possible_configurations(current_piece, self.field, False)
+        self.next_piece = next_piece
 
     def update_field(self):
         self.field = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
@@ -92,18 +100,42 @@ class AI_Agent:
     def evaluation_function(self, current_piece):
         if len(self.all_configurations) != 0:
             score_moves = []
+            score_next_moves = []
 
             for cord, index, positions in self.all_configurations:
+                move_score = 0
                 for x, y in positions:
                     self.field[y][x] = 1
+
+                # next piece knowledge
+
+                """self.next_state = self.field
+
+                self.get_possible_configurations(self.next_piece, self.next_state, True)
+
+                if len(self.next_configurations) != 0:
+                    for next_cord, next_ind, next_positions in self.next_configurations:
+                        for x, y in next_positions:
+                            self.next_state[y][x] = 1
+
+                        self.heuris.update_field(self.next_state)
+                        board_state = self.heuris.get_heuristics()
+                        next_move_score = self.nueral_net.query(board_state)[0]
+
+                        for x, y in next_positions:
+                            self.next_state[y][x] = 0
+
+                        score_next_moves.append(next_move_score)
+
+                    move_score += max(score_next_moves)
+                else:
+                    move_score += 0"""
 
                 self.heuris.update_field(self.field)
 
                 board_state = self.heuris.get_heuristics()
 
-                full_board_state = board_state
-
-                move_score = self.nueral_net.query(full_board_state)[0]
+                move_score = self.nueral_net.query(board_state)[0]
 
                 for x, y in positions:
                     self.field[y][x] = 0
@@ -132,7 +164,7 @@ class Trainer:
         self.record = 0
         self.new_pop = None
         self.old_pop = None
-        self.epochs = 10
+        self.epochs = 1
         self.checkpoint = 2
         self.epoch_data = {}
 
@@ -144,8 +176,11 @@ class Trainer:
     def eval(self, load_population):
         """ WHole population object is pickled"""
         if load_population:
-            with open("population.pkl", "rb") as f:
-                self.old_pop = pickle.load(f)
+            try:
+                with open("population.pkl", "rb") as f:
+                    self.old_pop = pickle.load(f)
+            except FileNotFoundError or FileExistsError:
+                print('File not found, or it does not exist')
 
         for epoch in range(self.epochs):
             print('__________________________________________')
@@ -161,22 +196,16 @@ class Trainer:
                 self.agent.nueral_net = self.new_pop.models[neural_index]
 
                 while tetris_game.run:
-                    self.agent.landed = tetris_game.landed
-
-                    # update the agent with useful info to find the best move
-                    self.agent.update_agent(tetris_game.current_piece)
-                    tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
                     tetris_game.game_logic()
+                    # update the agent with useful info to find the best move
+                    self.agent.update_agent(tetris_game.current_piece, tetris_game.next_piece, tetris_game.landed)
+
+                    tetris_game.best_move = self.agent.get_best_move(tetris_game.current_piece)
 
                     # make the move
                     tetris_game.make_ai_move()
 
                     current_fitness += tetris_game.fitness_func()
-
-                    self.agent.landed = tetris_game.landed
-
-                    # update the agent with useful info to find the best move
-                    self.agent.update_agent(tetris_game.current_piece)
 
                     if tetris_game.change_piece:
                         tetris_game.change_state()
@@ -211,28 +240,28 @@ class Trainer:
         scores = [d[3] for d in self.epoch_data.values()]
 
         # fitness graph
-        for epoch in epochs:
-            for fitness in fitnesses:
-                plt.scatter([epoch for _ in range(len(fitness))], fitness)
+        for epoch, fitness_list in zip(epochs, fitnesses):
+            plt.scatter([epoch for _ in range(len(fitness_list))], fitness_list, color="blue", label="All fitnesses")
 
-        plt.plot(epochs, av_fitness, color="red")
+        plt.plot(epochs, av_fitness, color="red", label='Average fitness')
 
         plt.title("Fitness against epochs")
         plt.xlabel("Epoch")
         plt.ylabel("Fitness")
+        plt.legend()
 
         plt.show()
 
         # Scores graph
-        for epoch in epochs:
-            for score in scores:
-                plt.scatter([epoch for _ in range(len(score))], score)
+        for epoch, scores_list in zip(epochs, scores):
+            plt.scatter([epoch for _ in range(len(scores_list))], scores_list, color="blue", label="All scores")
 
-        plt.plot(epochs, av_score, color="red")
+        plt.plot(epochs, av_score, color="red", label="Average score")
 
         plt.title("Score against epochs")
         plt.xlabel("Epoch")
         plt.ylabel("Score")
+        plt.legend()
 
         plt.show()
 

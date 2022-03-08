@@ -12,18 +12,13 @@ class AI_Agent:
         self.columns = tetris_ai.COLUMNS
         self.field = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
         self.landed = None
-        self.final_cords = []
         self.heuris = hu.Heuristics(self.columns, self.rows)  # this is a heuristics obj
         self.best_move = None
-        self.move_data = {}
-        self.final_positions = {}
         self.all_pieces = ['I', 'S', 'O', 'Z', 'T', 'L', 'J']
         self.all_configurations = []
         self.next_configurations = []
         self.next_state = None
         self.next_piece = None
-        self.cord_scores = {}
-        self.actions_scores = []
         self.nueral_net = None
 
     def get_possible_configurations(self, piece, field, is_next_piece):
@@ -97,39 +92,41 @@ class AI_Agent:
                         print('random index error is random')
                         pass
 
+    def next_piece_knowledge(self):
+        score_next_moves = []
+
+        self.get_possible_configurations(self.next_piece, self.next_state, True)
+
+        if len(self.next_configurations) != 0:
+            for next_cord, next_ind, next_positions in self.next_configurations:
+                for x, y in next_positions:
+                    self.next_state[y][x] = 1
+
+                self.heuris.update_field(self.next_state)
+                board_state = self.heuris.get_heuristics()
+                next_move_score = self.nueral_net.query(board_state)[0]
+
+                for x, y in next_positions:
+                    self.next_state[y][x] = 0
+
+                score_next_moves.append(next_move_score)
+
+            return max(score_next_moves)
+        else:
+            return 0
+
     def evaluation_function(self, current_piece):
         if len(self.all_configurations) != 0:
             score_moves = []
-            score_next_moves = []
 
             for cord, index, positions in self.all_configurations:
                 move_score = 0
                 for x, y in positions:
                     self.field[y][x] = 1
 
-                # next piece knowledge
+                self.next_state = self.field
 
-                """self.next_state = self.field
-
-                self.get_possible_configurations(self.next_piece, self.next_state, True)
-
-                if len(self.next_configurations) != 0:
-                    for next_cord, next_ind, next_positions in self.next_configurations:
-                        for x, y in next_positions:
-                            self.next_state[y][x] = 1
-
-                        self.heuris.update_field(self.next_state)
-                        board_state = self.heuris.get_heuristics()
-                        next_move_score = self.nueral_net.query(board_state)[0]
-
-                        for x, y in next_positions:
-                            self.next_state[y][x] = 0
-
-                        score_next_moves.append(next_move_score)
-
-                    move_score += max(score_next_moves)
-                else:
-                    move_score += 0"""
+                # move_score += self.next_piece_knowledge()
 
                 self.heuris.update_field(self.field)
 
@@ -164,7 +161,7 @@ class Trainer:
         self.record = 0
         self.new_pop = None
         self.old_pop = None
-        self.epochs = 1
+        self.epochs = 10
         self.checkpoint = 2
         self.epoch_data = {}
 
@@ -223,14 +220,15 @@ class Trainer:
             self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/1000, self.new_pop.fitnesses, sum(scores)/1000, scores)
             self.old_pop = self.new_pop
 
-            """if (epoch+1) % self.checkpoint == 0:
+            if (epoch+1) % self.checkpoint == 0:
                 print('Saving models///////......')
                 self.save_population(epoch)
-                print('Saved successfully////////////////')"""
+                print('Saved successfully////////////////')
 
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
             print(f'Average fitness: {self.epoch_data[epoch+1][0]}')
 
+    def draw_graphs(self):
         # plot graphs after epochs are done
         style.use("ggplot")
 
@@ -244,7 +242,7 @@ class Trainer:
         for epoch, fitness_list in zip(epochs, fitnesses):
             plt.scatter([epoch for _ in range(len(fitness_list))], fitness_list, color="blue", label="All fitnesses")
 
-        plt.plot(epochs, av_fitness, color="red", label='Average fitness')
+        plt.plot(epochs, av_fitness, color="red", label='Average fitness', marker=".")
 
         plt.title("Fitness against epochs")
         plt.xlabel("Epoch")
@@ -255,9 +253,9 @@ class Trainer:
 
         # Scores graph
         for epoch, scores_list in zip(epochs, scores):
-            plt.scatter([epoch for _ in range(len(scores_list))], scores_list, color="blue", label="All scores")
+            plt.scatter([epoch for _ in range(len(scores_list))], scores_list, label="All scores")
 
-        plt.plot(epochs, av_score, color="red", label="Average score")
+        plt.plot(epochs, av_score, label="Average score", marker=".", color="blue")
 
         plt.title("Score against epochs")
         plt.xlabel("Epoch")
@@ -273,8 +271,10 @@ if __name__ == '__main__':
 
     if load == 'Y':
         trainer.eval(True, int(input('From which epoch: ')))
+        trainer.draw_graphs()
     else:
         trainer.eval(False, 0)
+        trainer.draw_graphs()
 
 
 

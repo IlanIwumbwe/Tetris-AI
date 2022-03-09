@@ -165,18 +165,20 @@ class Trainer:
         self.checkpoint = 2
         self.epoch_data = {}
 
-    def save_population(self, epoch_number):
-        path = f"./populations/{epoch_number+1}population.pkl"
-        with open(path, "wb") as f:
-            pickle.dump(self.old_pop, f)
-
     def eval(self, load_population, epoch_number):
-        """ WHole population object is pickled"""
         if load_population:
             try:
                 path = f"./populations/{epoch_number}population.pkl"
                 with open(path, "rb") as f:
-                    self.old_pop = pickle.load(f)
+                    weight_matrices = pickle.load(f)
+
+                self.old_pop = Population(1000, None)
+
+                for ind, model in enumerate(self.old_pop.models):
+                    model.wi_ha = weight_matrices[ind][0]
+                    model.wha_hb = weight_matrices[ind][1]
+                    model.whb_o = weight_matrices[ind][2]
+
             except FileNotFoundError or FileExistsError:
                 print('File not found, or it does not exist')
 
@@ -222,7 +224,7 @@ class Trainer:
 
             if (epoch+1) % self.checkpoint == 0:
                 print('Saving models///////......')
-                self.save_population(epoch)
+                self.old_pop.save_population(epoch)
                 print('Saved successfully////////////////')
 
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')

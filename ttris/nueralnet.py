@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.special
+import pickle
 
 class Nueral_net:
     def __init__(self, input_nodes, hidden_a_nodes, hidden_b_nodes, output_nodes):
@@ -29,8 +30,8 @@ class Nueral_net:
         return final_outputs
 
 input_size = 9
-hidden_size_a = 6
-hidden_size_b = 6
+hidden_size_a = 8
+hidden_size_b = 8
 output_size = 1
 
 # genetic algorithm
@@ -133,6 +134,20 @@ class Population:
                 for ind, col in enumerate(row):
                     if np.random.random() < mutation_prob:
                         row[ind] += np.random.uniform(-mutation_power, mutation_power)
+
+    def save_population(self, epoch_number):
+        weight_matrices = []
+
+        for model in self.models:
+            weight_matrices.append((model.wi_ha, model.wha_hb, model.whb_o))
+
+        path = f"./populations/{epoch_number+1}population.pkl"
+        with open(path, "wb") as f:
+            pickle.dump(weight_matrices, f)
+
+
+
+
 
 
 

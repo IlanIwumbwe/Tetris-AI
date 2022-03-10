@@ -219,7 +219,6 @@ class Collision:
         srs = SRS(piece)
 
         if action_space[move] == 'cw':
-            piece.rot_index = (piece.rot_index + 1) % 4
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
             try:
@@ -229,7 +228,6 @@ class Collision:
                 pass
 
         elif action_space[move] == 'ccw':
-            piece.rot_index = (piece.rot_index - 1) % 4
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
             try:
@@ -482,11 +480,10 @@ class Tetris:
         self.collision.create_field(self.landed)
         self.tetrises = 0
         self.grid = self.board.create_grid()
-        self.previous_state = None
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0.28
+        self.fall_speed = 0.002
 
         # game clock
         self.clock = pygame.time.Clock()
@@ -501,11 +498,11 @@ class Tetris:
         pos_x = top_left_x + play_w
         pos_y = top_left_y + play_h // 2
 
-        score = font.render(f'Score: {self.board.score}', True, (0, 0, 0))
-        lines = font.render(f'Lines: {self.board.lines}', True, (0, 0, 0))
-        tetrises = font.render(f'Tetrises: {self.tetrises}', True, (0, 0, 0))
-        next_text = font.render('NEXT PIECE', True, (0, 0, 0))
-        hold_text = font.render('HOLD PIECE', True, (0, 0, 0))
+        score = font.render(f'Score: {self.board.score}', True, BLACK)
+        lines = font.render(f'Lines: {self.board.lines}', True, BLACK)
+        tetrises = font.render(f'Tetrises: {self.tetrises}', True, BLACK)
+        next_text = font.render('NEXT PIECE', True, BLACK)
+        hold_text = font.render('HOLD PIECE', True, BLACK)
 
         self.win.blit(score, (pos_x - 200, pos_y + 50))
         self.win.blit(lines, (pos_x - 200, pos_y + 80))
@@ -523,10 +520,6 @@ class Tetris:
             file.write(f'\nScore: {self.score} ......  Lines: {self.lines}')
 
     def lost(self):
-        """if self.current_piece.pieces_dealt == 500:
-            return True
-        else:"""
-        # if piece touches top of grid, its a loss
         for pos in self.landed:
             if pos[1] <= 1:
                 return True
@@ -536,9 +529,9 @@ class Tetris:
     def change_state(self):
         self.board.score += 1
 
-        """# lock position
+        # lock position
         for i in self.current_piece.current_position():
-            self.landed[i] = self.current_piece.colour"""
+            self.landed[i] = self.current_piece.colour
 
         # clear rows
         cleared = self.board.clear_rows(self.grid)
@@ -553,7 +546,7 @@ class Tetris:
 
         self.board.show_next_piece(self.win, self.next_piece)
 
-        self.lines, self.score = self.board.lines, self.board.score  # maybe set self.lines = cleared ?
+        self.lines, self.score = self.board.lines, self.board.score
 
         self.current_piece = self.next_piece
 
@@ -563,7 +556,7 @@ class Tetris:
     def game_logic(self):
         self.grid = self.board.create_grid()
 
-        """self.fall_time += self.clock.get_rawtime()
+        self.fall_time += self.clock.get_rawtime()
         self.clock.tick()
 
         if self.fall_time / 1000 > self.fall_speed:
@@ -573,7 +566,7 @@ class Tetris:
                 self.current_piece.y += 1
             else:
                 self.board.score += 1
-                self.change_piece = True"""
+                self.change_piece = True
 
         self.win.fill(BG)
 
@@ -588,7 +581,6 @@ class Tetris:
 
         piece_positions = self.current_piece.current_position()
 
-        # render on board
         if self.show_piece:
             for x, y in piece_positions:
                 if (x, y) not in self.landed:
@@ -622,10 +614,12 @@ class Tetris:
 
         elif action_space[move] == 'cw':
             if self.collision.move_works(piece, move) != False and not piece.piece == O:
+                piece.rot_index = (piece.rot_index+1) % 4
                 piece.rotate('cw')
 
         elif action_space[move] == 'ccw':
             if self.collision.move_works(piece, move) != False and not piece.piece == O:
+                piece.rot_index = (piece.rot_index-1) % 4
                 piece.rotate('ccw')
 
         elif action_space[move] == 'hd':
@@ -671,12 +665,18 @@ class Tetris:
             for _ in range(abs(moves)):
                 self.make_move(pygame.K_LEFT, self.current_piece)
 
-        for i in block_pos:
+        self.make_move(pygame.K_DOWN, self.current_piece)
+        """down = t_y - cu_y
+        
+        for _ in range(down):
+            self.make_move(pygame.K_DOWN, self.current_piece)"""
+
+        """for i in block_pos:
             self.landed[i] = self.current_piece.colour
 
-        time.sleep(0.009)
+        time.sleep(0.052)"""
 
-        self.change_piece = True
+        # self.change_piece = True
 
 
 

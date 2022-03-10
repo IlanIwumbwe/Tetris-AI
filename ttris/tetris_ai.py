@@ -648,13 +648,12 @@ class Tetris:
         diff = cu_rot_state - t_rot_state
         rotation_options = [pygame.K_UP, pygame.K_w]
 
-        if abs(diff) == 2:
-            choice = random.choice(rotation_options)
-            self.make_move(choice, self.current_piece)
-        elif abs(diff) == 1:
-            self.make_move(pygame.K_UP, self.current_piece)
-        elif abs(diff) == 3:
-            self.make_move(pygame.K_w, self.current_piece)
+        if diff < 0:
+            for _ in range(abs(diff)):
+                self.make_move(pygame.K_UP, self.current_piece)
+        else:
+            for _ in range(abs(diff)):
+                self.make_move(pygame.K_w, self.current_piece)
 
         moves = t_x - cu_x
 

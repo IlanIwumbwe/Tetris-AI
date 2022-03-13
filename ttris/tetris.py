@@ -90,18 +90,6 @@ mixer.music.load('tetris-gameboy-02.ogg')
 mixer.music.play(-1)
 """
 
-def valid_space(piece, grid):  # piece is an object
-    # valid positions if they're blank
-    positions = [[(j, i) for j in range(COLUMNS) if grid[i][j] == WHITE] for i in range(ROWS)]
-    valid_positions = [tupl for pos in positions for tupl in pos]  # flatten
-    x_pos = piece.current_position()
-
-    for i in x_pos:
-        if i not in valid_positions:
-            return False
-    return True
-
-
 class SRS:
     def __init__(self, piece):  # piece is an object
         self.piece = piece
@@ -224,8 +212,13 @@ class Collision:
         srs = SRS(piece)
 
         if action_space[move] == 'cw':
-            piece.rot_index = Mod(piece.rot_index + 1, 4)
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
+
+            print(f'Rotation cords : {rotation_cords}')
+            print(f'Current piece : {piece.current_position()}')
+
+            if all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords]):
+                print('The move is valid')
 
             try:
                 return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
@@ -234,7 +227,6 @@ class Collision:
                 pass
 
         elif action_space[move] == 'ccw':
-            piece.rot_index = Mod(piece.rot_index - 1, 4)
             rotation_cords = get_rotation_cords(srs, 'ccw', piece)
 
             try:
@@ -270,11 +262,10 @@ class Collision:
                 print('Will try again')
                 pass
 
-        return True
+        return False
 
     def print_f(self):
         for i in self.field:
-            print()
             print(i)
 
 
@@ -420,21 +411,18 @@ class Piece_Gne:
             for piece in random.choice(permu):
                 yield piece
 
-    def pop(self, buffer, generator):
+    def pop(self, buffer, gen):
         popped = buffer[self.start_ind]
         self.start_ind = (self.start_ind + 1) % len(buffer)
-        buffer[self.start_ind] = next(generator)
+        buffer[self.start_ind] = next(gen)
 
         return popped
 
     def get_piece(self):
-        rng = self.generator_function()
+        gen = self.generator_function()
+        buffer = [next(gen) for _ in range(7)]
 
-        size = 7
-
-        buffer = [next(rng) for _ in range(size)]
-
-        popped = self.pop(buffer, rng)
+        popped = self.pop(buffer, gen)
 
         p = Piece(4, 0, popped)
         return p
@@ -466,14 +454,8 @@ def score_game(cleared, level):
     else:
         return 0
 
-
 def get_data(piece, rot_index):
     return data.Data(piece, rot_index).get_data()
-
-
-def Mod(n, d):  # NUMERATOR, DENOMINATOR
-    return (n % d + d) % d
-
 
 class Tetris:
     def __init__(self):
@@ -508,7 +490,7 @@ class Tetris:
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0
+        self.fall_speed = 0.28
 
         # game clock
         self.clock = pygame.time.Clock()
@@ -523,11 +505,11 @@ class Tetris:
         pos_x = top_left_x + play_w
         pos_y = top_left_y + play_h // 2
 
-        score = font.render(f'Score: {self.board.score}', True, (0, 0, 0))
-        lines = font.render(f'Lines: {self.board.lines}', True, (0, 0, 0))
-        level = font.render(f'Level: {self.board.level}', True, (0, 0, 0))
-        next_text = font.render('NEXT PIECE', True, (0, 0, 0))
-        hold_text = font.render('HOLD PIECE', True, (0, 0, 0))
+        score = font.render(f'Score: {self.board.score}', True, BLACK)
+        lines = font.render(f'Lines: {self.board.lines}', True, BLACK)
+        level = font.render(f'Level: {self.board.level}', True, BLACK)
+        next_text = font.render('NEXT PIECE', True, BLACK)
+        hold_text = font.render('HOLD PIECE', True, BLACK)
 
         self.win.blit(score, (pos_x - 200, pos_y + 50))
         self.win.blit(lines, (pos_x - 200, pos_y + 80))
@@ -563,12 +545,11 @@ class Tetris:
         if cleared == 4:
             self.tetrises += 1
 
-        show_piece = True
-
         # update game level
         self.board.level = self.lines // 10
 
         self.collision.create_field(self.landed)
+        # self.collision.print_f()
 
         self.board.show_next_piece(self.win, self.next_piece)
 
@@ -582,7 +563,6 @@ class Tetris:
 
     def game_logic(self):
         self.grid = self.board.create_grid()
-        self.fall_speed = 0.28
 
         self.fall_time += self.clock.get_rawtime()
         self.clock.tick()
@@ -629,9 +609,6 @@ class Tetris:
                         # print('wef')
                         self.run = False
 
-        # show the best move
-        self.board.show_best_move(self.grid, self.best_move)
-
         '''
         user wants to hold piece, store it in held piece, change current to next,
         generate new piece to replace next piece
@@ -677,10 +654,12 @@ class Tetris:
         elif action_space[move] == 'cw':
             if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
                 self.current_piece.rotate('cw')
+                self.current_piece.rot_index = (self.current_piece.rot_index + 1) % 4
 
         elif action_space[move] == 'ccw':
             if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
                 self.current_piece.rotate('ccw')
+                self.current_piece.rot_index = (self.current_piece.rot_index - 1) % 4
 
         elif action_space[move] == 'hd':
             works = True

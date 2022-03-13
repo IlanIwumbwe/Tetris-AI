@@ -459,7 +459,6 @@ def get_data(piece, rot_index):
 
 class Tetris:
     def __init__(self):
-        self.hold_pressed = 1
         self.win = pygame.display.set_mode((width, height))
         # piece generation setup
         self.generate = Piece_Gne(['I', 'S', 'O', 'Z', 'T', 'L', 'J'])
@@ -490,7 +489,7 @@ class Tetris:
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0.28
+        self.fall_speed = 0.2
 
         # game clock
         self.clock = pygame.time.Clock()
@@ -592,7 +591,7 @@ class Tetris:
                         self.hold_piece = True if self.held_piece is None else False
 
                     if action_space[event.key] == 'unhold':
-                        self.unhold_piece = True if self.hold_pressed != 0 else False
+                        self.unhold_piece = True if self.held_piece is not None else False
                 except KeyError:
                     print('WRONG KEY!')
 

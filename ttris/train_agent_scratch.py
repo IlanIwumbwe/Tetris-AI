@@ -168,9 +168,13 @@ class Trainer:
     def eval(self, load_population, epoch_number):
         if load_population:
             try:
-                path = f"./populations/{epoch_number}population.pkl"
-                with open(path, "rb") as f:
+                path1 = f"./populations/{epoch_number}population.pkl"
+                with open(path1, "rb") as f:
                     weight_matrices = pickle.load(f)
+
+                path2 = f"./populations/{epoch_number}fitness.pkl"
+                with open(path2, "rb") as f:
+                    fitnesses = pickle.load(f)
 
                 self.old_pop = Population(1000, None)
 
@@ -178,6 +182,8 @@ class Trainer:
                     model.wi_ha = weight_matrices[ind][0]
                     model.wha_hb = weight_matrices[ind][1]
                     model.whb_o = weight_matrices[ind][2]
+
+                self.old_pop.fitnesses = fitnesses
 
             except FileNotFoundError or FileExistsError:
                 print('File not found, or it does not exist')
@@ -241,8 +247,8 @@ class Trainer:
         scores = [d[3] for d in self.epoch_data.values()]
 
         # fitness graph
-        for epoch, fitness_list in zip(epochs, fitnesses):
-            plt.scatter([epoch for _ in range(len(fitness_list))], fitness_list, color="blue", label="All fitnesses")
+        for ind, fitness_list in enumerate(fitnesses):
+            plt.scatter([epochs[ind] for _ in range(len(fitness_list))], fitness_list, color="blue", label="All fitnesses")
 
         plt.plot(epochs, av_fitness, color="red", label='Average fitness', marker=".")
 
@@ -254,8 +260,8 @@ class Trainer:
         plt.show()
 
         # Scores graph
-        for epoch, scores_list in zip(epochs, scores):
-            plt.scatter([epoch for _ in range(len(scores_list))], scores_list, label="All scores")
+        for ind, scores_list in enumerate(scores):
+            plt.scatter([epochs[ind] for _ in range(len(scores_list))], scores_list, label="All scores")
 
         plt.plot(epochs, av_score, label="Average score", marker=".", color="blue")
 

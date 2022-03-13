@@ -137,13 +137,23 @@ class Population:
 
     def save_population(self, epoch_number):
         weight_matrices = []
+        fitnesses = []
 
         for model in self.models:
             weight_matrices.append((model.wi_ha, model.wha_hb, model.whb_o))
 
-        path = f"./populations/{epoch_number+1}population.pkl"
-        with open(path, "wb") as f:
+        for fitness_list in self.fitnesses:
+            fitnesses.append(fitness_list)
+
+        path1 = f"./populations/{epoch_number+1}population.pkl"
+        with open(path1, "wb") as f:
             pickle.dump(weight_matrices, f)
+
+        path2 = f"./populations/{epoch_number+1}fitness.pkl"
+        with open(path2, "wb") as f:
+            pickle.dump(fitnesses, f)
+
+
 
 
 

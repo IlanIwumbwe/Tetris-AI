@@ -67,9 +67,7 @@ class Heuristics:
         for row in self.field:
             if 1 in row:
                 for col in range(self.width-1):
-                    if row[col] == 0 and row[col+1] == 1:
-                        transitions += 1
-                    elif row[col] == 1 and row[col+1] == 0:
+                    if (row[col] == 0 and row[col+1] == 1) or (row[col] == 1 and row[col+1] == 0):
                         transitions += 1
         return transitions
 
@@ -79,11 +77,8 @@ class Heuristics:
 
         for col in range(self.width):
             for row in range(self.height-1):
-                if self.field[row][col] == 1 and self.field[row+1][col] == 0:
+                if (self.field[row][col] == 1 and self.field[row+1][col] == 0) or (self.field[row][col] == 0 and self.field[row+1][col] == 1):
                     transitions += 1
-                elif self.field[row][col] == 0 and self.field[row+1][col] == 1:
-                    transitions += 1
-
         return transitions
 
     def total_height(self):

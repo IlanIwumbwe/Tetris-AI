@@ -132,7 +132,7 @@ class AI_Agent:
 
                 board_state = self.heuris.get_heuristics()
 
-                move_score = self.nueral_net.query(board_state)[0]
+                move_score += self.nueral_net.query(board_state)[0]
 
                 for x, y in positions:
                     self.field[y][x] = 0

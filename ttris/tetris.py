@@ -50,9 +50,9 @@ pieces = {'I':I, 'S': S, 'O': O, 'Z': Z, 'T': T, 'L': L, 'J': J}
 centres = {'I': (1, 1), 'S': (1, 2), 'O': (1, 1), 'Z': (1, 2), 'T': (1, 2), 'L': (2, 2), 'J': (1, 2)}
 
 CYAN = (51, 255, 255)
-BLUE = (255, 255, 100)
-PINK = (255, 51, 255)
-YELLOW = (0, 0, 255)
+BLUE = (0, 0, 255)
+PURPLE = (225, 21, 132)
+YELLOW = (255, 255, 100)
 ORANGE = (255, 128, 0)
 RED = (255, 0, 0)
 GREEN = (51, 255, 51)
@@ -62,10 +62,10 @@ BLACK = (0, 0, 0)
 SPAWN_ROWS = (100, 140, 40) #(50, 100, 255)
 BG = (128, 128, 128)
 
-colours = {'I': CYAN, 'S': BLUE, 'O': PINK, 'Z': YELLOW, 'T': ORANGE, 'L': GREEN, 'J': RED}
+colours = {'I': CYAN, 'S': GREEN, 'O': YELLOW, 'Z': RED, 'T': PURPLE, 'L': ORANGE, 'J': BLUE}
 
 action_space = {pygame.K_DOWN: 'down', pygame.K_RIGHT: 'right', pygame.K_LEFT: 'left', pygame.K_UP: 'cw',
-                pygame.K_w: 'ccw', pygame.K_TAB: 'hd', pygame.K_SPACE: 'hold', pygame.K_BACKSPACE: 'unhold'}
+                pygame.K_w: 'ccw', pygame.K_TAB: 'hd', pygame.K_SPACE: 'hold', pygame.K_BACKSPACE: 'unhold', pygame.K_p:'pause'}
 
 BOUNDARY = 1
 ROWS = 20 + 2  # 2 extra rows for spawning
@@ -84,11 +84,9 @@ top_left_y = height - play_h - 400
 # font and music!
 f = 'freesansbold.ttf'
 
-"""
-mixer.init()
+"""mixer.init()
 mixer.music.load('tetris-gameboy-02.ogg')
-mixer.music.play(-1)
-"""
+mixer.music.play(-1)"""
 
 class SRS:
     def __init__(self, piece):  # piece is an object
@@ -214,12 +212,6 @@ class Collision:
         if action_space[move] == 'cw':
             rotation_cords = get_rotation_cords(srs, 'cw', piece)
 
-            print(f'Rotation cords : {rotation_cords}')
-            print(f'Current piece : {piece.current_position()}')
-
-            if all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords]):
-                print('The move is valid')
-
             try:
                 return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
             except IndexError:
@@ -275,7 +267,10 @@ class Board:
         self.score = score
         self.lines = lines
         self.level = 0
-
+        self.paused_effect = [(2,18),(2,19),(2,20),(3,18),(3,20),(4,18),(4,19),(4,20),(5,20),(6,20),(5,17),(6,17),(3,17),(4,17),(4,15),
+                             (4,16),(2,16),(3,15),(5,15),(6,15),(2,14),(2,12),(3,12),(3,14),(4,12),(4,14),(5,12),(5,14),(6,13),(3,11),
+                             (2,10),(2,9),(4,9),(4,10),(5,8),(6,9),(6,10),(6,11),(2,8),(2,7),(2,6),(4,8),(4,7),(4,6),(6,8),
+                             (6,7),(6,6),(3,8),(2,5),(3,5),(4,5),(5,5),(6,5),(6,4),(2,4),(3,3),(4,3),(5,3)]
     def create_grid(self):
         # if you want to change colour of grid, change _____ to desired colour! (except tetromino colour)
         GRID = [[WHITE for column in range(COLUMNS)] for row in range(ROWS)]
@@ -285,6 +280,17 @@ class Board:
                 if (j, i) in self.landed:
                     # set colour if position is landed i.e there is a piece there
                     GRID[i][j] = self.landed[(j, i)]
+
+        return GRID
+
+    def paused_grid(self):
+        GRID = [[BLACK for column in range(COLUMNS)] for row in range(ROWS)]
+        random_colour = colours[random.choice(['J','L','S','T','Z','O','I'])]
+        for i in range(ROWS):
+            for j in range(COLUMNS):
+                if (j, i) in self.paused_effect:
+                    GRID[i][j] = random_colour
+
         return GRID
 
     @staticmethod
@@ -398,6 +404,9 @@ class Board:
 
         return cleared_rows
 
+    def print_field(self):
+        for i in self.grid:
+            print(i)
 
 class Piece_Gne:
     def __init__(self, bag):
@@ -473,6 +482,7 @@ class Tetris:
         self.change_piece = False
         self.hold_piece = False
         self.unhold_piece = False
+        self.paused = False
 
         # get next piece
         self.next_piece = self.generate.get_piece()
@@ -489,7 +499,7 @@ class Tetris:
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0.2
+        self.fall_speed = 0.3
 
         # game clock
         self.clock = pygame.time.Clock()
@@ -516,6 +526,11 @@ class Tetris:
         self.win.blit(next_text, (pos_x - 200, pos_y - 90))
         self.win.blit(hold_text, (pos_x - 90, pos_y - 90))
 
+        with open('controls.txt', 'r') as file:
+            for ind, line in enumerate(file.readlines()):
+                c_r = font.render(line[:-1], True, BLACK)
+                self.win.blit(c_r, (pos_x, pos_y+(20*ind)))
+
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
         if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
@@ -537,6 +552,9 @@ class Tetris:
         # lock position
         for i in self.current_piece.current_position():
             self.landed[i] = self.current_piece.colour
+
+        #self.board.print_field()
+        #print(self.landed
 
         # clear rows
         cleared = self.board.clear_rows(self.grid)
@@ -561,19 +579,25 @@ class Tetris:
             self.change_piece = False
 
     def game_logic(self):
-        self.grid = self.board.create_grid()
+        if self.paused:
+            self.grid = self.board.paused_grid()
+            self.show_piece = False
+        else:
+            self.grid = self.board.create_grid()
+            self.show_piece = True
 
-        self.fall_time += self.clock.get_rawtime()
-        self.clock.tick()
+        if not self.paused:
+            self.fall_time += self.clock.get_rawtime()
+            self.clock.tick()
 
-        if self.fall_time / 1000 > self.fall_speed:
-            self.fall_time = 0
+            if self.fall_time / 1000 > self.fall_speed:
+                self.fall_time = 0
 
-            if self.collision.move_works(self.current_piece, pygame.K_DOWN):
-                self.current_piece.y += 1
-            else:
-                self.board.score += 1
-                self.change_piece = True
+                if self.collision.move_works(self.current_piece, pygame.K_DOWN):
+                    self.current_piece.y += 1
+                else:
+                    self.board.score += 1
+                    self.change_piece = True
 
         self.win.fill(BG)
 
@@ -585,13 +609,16 @@ class Tetris:
             if event.type == pygame.KEYDOWN:
                 try:
                     self.collision.create_field(self.landed)
-                    self.make_move(event.key)
+                    if not self.paused: self.make_move(event.key)
 
                     if action_space[event.key] == 'hold':
                         self.hold_piece = True if self.held_piece is None else False
 
                     if action_space[event.key] == 'unhold':
                         self.unhold_piece = True if self.held_piece is not None else False
+
+                    if action_space[event.key] == 'pause':
+                        self.paused = not self.paused
                 except KeyError:
                     print('WRONG KEY!')
 
@@ -608,23 +635,13 @@ class Tetris:
                         # print('wef')
                         self.run = False
 
-        '''
-        user wants to hold piece, store it in held piece, change current to next,
-        generate new piece to replace next piece
-
-        set hold piece back to false
-        '''
         if self.hold_piece:
             self.held_piece = self.current_piece
             self.current_piece = self.next_piece
             self.next_piece = self.generate.get_piece()
             self.hold_piece = False
 
-        '''
-        user wants to unhold, piece, set hold pressed back to 0, so we reset state
-        make it spawn exactly where current piece was
-        make swap
-        '''
+
         if self.unhold_piece:
             self.held_piece.x, self.held_piece.y = self.current_piece.x, self.current_piece.y
             self.current_piece = self.held_piece
@@ -645,10 +662,14 @@ class Tetris:
         elif action_space[move] == 'right':
             if self.collision.move_works(self.current_piece, move):
                 self.current_piece.x += 1
+            """else:
+                print('Collision with piece or wall')"""
 
         elif action_space[move] == 'left':
             if self.collision.move_works(self.current_piece, move):
                 self.current_piece.x -= 1
+            """else:
+                print('Collision with piece or wall')"""
 
         elif action_space[move] == 'cw':
             if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:

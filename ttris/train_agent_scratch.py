@@ -242,13 +242,7 @@ class Trainer:
 
         epochs = [e for e in self.epoch_data.keys()]
         av_fitness = [d[0] for d in self.epoch_data.values()]
-        fitnesses = [d[1] for d in self.epoch_data.values()]
         av_score = [d[2] for d in self.epoch_data.values()]
-        scores = [d[3] for d in self.epoch_data.values()]
-
-        # fitness graph
-        for ind, fitness_list in enumerate(fitnesses):
-            plt.scatter([epochs[ind] for _ in range(len(fitness_list))], fitness_list, color="blue", label="All fitnesses")
 
         plt.plot(epochs, av_fitness, color="red", label='Average fitness', marker=".")
 
@@ -258,10 +252,6 @@ class Trainer:
         plt.legend()
 
         plt.show()
-
-        # Scores graph
-        for ind, scores_list in enumerate(scores):
-            plt.scatter([epochs[ind] for _ in range(len(scores_list))], scores_list, label="All scores")
 
         plt.plot(epochs, av_score, label="Average score", marker=".", color="blue")
 

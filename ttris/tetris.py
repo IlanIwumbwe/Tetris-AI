@@ -93,10 +93,138 @@ class SRS:
         self.piece = piece
         self.centre = self.piece.centre
         self.rot_index = self.piece.rot_index
+        self.clockwise = True
+        self.desired_rot_index = None
+        self.boundary = [(row, col) for col in range(1) for row in range(24)] + \
+                        [(row, col) for col in range(12) for row in range(1)] + \
+                        [(row, col) for col in range(11, 12) for row in range(24)] + \
+                        [(row, col) for col in range(12) for row in range(23, 24)]
+        self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
 
-    def rotation(self, clockwise, piece_string):
+    def update_field(self, landed):
+        self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
+        # create landed positions
+        if landed != {}:
+            for (x, y) in landed.keys():
+                try:
+                    self.field[y+BOUNDARY][x+BOUNDARY] = 1
+                except IndexError:
+                    print('Error on landed piece placement')
+                    pass
+
+        # create boundary
+        for x, y in self.boundary:
+            try:
+                self.field[x][y] = 1
+            except IndexError:
+                print('Boundary positions are wrong')
+
+    def make_move(self, move):  # collision is an object
+        if move == 'cw' or move == 'ccw':
+            if move == 'cw':
+                basic_rot_cords = self.basic_rotation(True)
+            else:
+                basic_rot_cords = self.basic_rotation(False)
+
+            new_state = ['.' for _ in range(16)]
+
+            wk_data = self.wall_kick_data()
+
+            trials = 0
+            final_x, final_y = self.piece.x, self.piece.y
+            for x_shift, y_shift in wk_data:
+                trials += 1
+                grid_cords =[(x+self.piece.x+x_shift, y+self.piece.y-y_shift) for x, y in basic_rot_cords]
+
+                try:
+                    if all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in grid_cords]):
+                        final_x = self.piece.x + x_shift
+                        final_y = self.piece.y - y_shift
+                        break
+                    else:
+                        continue
+                except IndexError:
+                    continue
+
+            if (trials == 1 and ((final_x == self.piece.x) and (final_y == self.piece.y))) or \
+                    (trials > 1 and ((final_x != self.piece.x) or (final_y != self.piece.y))):
+                self.piece.state_cords = basic_rot_cords
+                self.piece.x, self.piece.y = final_x, final_y
+
+                for x, y in self.piece.state_cords:
+                    ind = 4 * y + x
+                    new_state[ind] = 'x'
+
+                self.piece.state = ''.join(new_state)
+
+                if move == 'cw':
+                    self.piece.rot_index += 1
+                else:
+                    self.piece.rot_index -= 1
+            else:
+                pass
+
+        elif move == 'down':
+            pos = self.piece.current_position()
+
+            try:
+                return all([self.field[y + BOUNDARY + 1][x + BOUNDARY] == 0 for x, y in pos])
+            except IndexError:
+                print('WIll try again')
+                pass
+
+        elif move == 'right':
+            pos = self.piece.current_position()
+
+            try:
+                return all([self.field[y + BOUNDARY][x + BOUNDARY + 1] == 0 for x, y in pos])
+            except IndexError:
+                print('Will try again')
+                pass
+
+        elif move == 'left':
+            pos = self.piece.current_position()
+
+            try:
+                return all([self.field[y + BOUNDARY][x + BOUNDARY - 1] == 0 for x, y in pos])
+            except IndexError:
+                print('Will try again')
+                pass
+
+        return False
+
+    def wall_kick_data(self):
+        if self.clockwise:
+            self.desired_rot_index = (self.rot_index + 1) % 4
+        else:
+            self.desired_rot_index = (self.rot_index - 1) % 4
+
+        JLSTZ = {(0,1):[(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)],
+                 (1,0):[(0,0),(1,0),(1,-1),(0,2),(1,2)],
+                 (1,2):[(0,0),(1,0),(1,-1),(0,2),(1,2)],
+                 (2,1):[(0,0),(-1,0),(-1,1),(0,-2),(-1,-2)],
+                 (2,3):[(0,0),(1,0),(1,-1),(0,-2),(1,-2)],
+                 (3,2):[(0,0),(-1,0),(-1,1),(0,2),(-1,2)],
+                 (3,0):[(0,0),(-1,0),(-1,1),(0,2),(-1,2)],
+                 (0,3):[(0,0),(1,0),(1,-1),(0,-2),(1,-2)]}
+
+        I_piece = {(0,1):[(0,0),(-2,0),(1,0),(-2,-1),(1,2)],
+             (1,0):[(0,0),(2,0),(-1,0),(2,1),(-1,-2)],
+             (1,2):[(0,0),(-1,0),(2,0),(-1,2),(2,-1)],
+             (2,1):[(0,0),(1,0),(-2,0),(1,-2),(-2,1)],
+             (2,3):[(0,0),(2,0),(-1,0),(2,1),(-1,-2)],
+             (3,2):[(0,0),(-2,0),(1,0),(-2,-1),(1,2)],
+             (3,0):[(0,0),(1,0),(-2,0),(1,-2),(-2,1)],
+             (0,3):[(0,0),(-1,0),(2,0),(-1,2),(2,-1)]}
+
+        if self.piece.str_id == 'I':
+            return I_piece[(self.rot_index, self.desired_rot_index)]
+        else:
+            return JLSTZ[(self.rot_index, self.desired_rot_index)]
+
+    def basic_rotation(self, clockwise):
         mat = None
-        piece = [piece_string[i:i + 4] for i in range(0, len(piece_string), 4)]
+        piece = [self.piece.state[i:i + 4] for i in range(0, len(self.piece.state), 4)]
         c_x, c_y = self.centre
 
         global_cords = []
@@ -116,8 +244,10 @@ class SRS:
             relative_cords.append((x - c_x, y - c_y))
 
         if clockwise:
+            self.clockwise = True
             mat = CLOCKWISE_MATRIX
         if not clockwise:
+            self.clockwise = False
             mat = ANTICLOCKWISE_MATRIX
 
         # calculate new relative cord to centre
@@ -144,121 +274,41 @@ class Piece:
         self.all = [(j, i) for i in range(4) for j in range(4)]
         self.centre = centres[self.str_id]
         self.colour = colours[self.str_id] if self.piece is not None else None
-        self.state_cords = data.Data(self.str_id, 0).get_data()
+        self.state_cords =  data.Data(self.str_id, 0).get_data()
+        self.srs = SRS(self)
 
-    def rotate(self, dir):
-        rotation_data_for_I = data.Data(self.str_id, self.rot_index).get_data()
-        srs = SRS(self)
-        new_str = ['.' for _ in range(16)]
-
-
-        if self.str_id != 'I':
-            if dir == 'cw':
-                self.clockwise = True
+    def make_move(self, move):
+        if move == 'right':
+            if self.srs.make_move('right'):
+                self.x += 1
+        elif move == 'left':
+            if self.srs.make_move('left'):
+                self.x -= 1
+        elif move == 'down':
+            if self.srs.make_move('down'):
+                self.y += 1
             else:
-                self.clockwise = False
+                return False
+        elif move == 'cw':
+            if self.str_id == 'O':
+                pass
+            else:
+                if self.str_id == 'I':
+                    self.srs.make_move('ccw')
+                else:
+                    self.srs.make_move('cw')
 
-            self.state_cords = srs.rotation(self.clockwise, self.state)
-
-            for x, y in self.state_cords:
-                ind = 4*y + x
-                new_str[ind] = 'x'
-
-            self.state = ''.join(new_str)
-        else:
-            self.state_cords = rotation_data_for_I
-
-            for x, y in self.state_cords:
-                ind = 4 * y + x
-                new_str[ind] = 'x'
-
-            self.state = ''.join(new_str)
+        elif move == 'ccw':
+            if self.str_id == 'O':
+                pass
+            else:
+                self.srs.make_move('ccw')
 
     def current_position(self):  # get grid positions of a passed piece object
         return [(r_x+self.x, r_y+self.y) for r_x, r_y in self.state_cords]
 
     def get_config(self):
         return self.rot_index, (self.x, self.y), self.current_position(), 0
-
-class Collision:
-    def __init__(self):  # piece is an object
-        self.boundary = [(row, col) for col in range(1) for row in range(24)] + \
-                        [(row, col) for col in range(12) for row in range(1)] + \
-                        [(row, col) for col in range(11, 12) for row in range(24)] + \
-                        [(row, col) for col in range(12) for row in range(23, 24)]
-        self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
-
-    def create_field(self, landed):
-        self.field = [[0 for _ in range(COLUMNS + 2 * BOUNDARY)] for _ in range(ROWS + 2 * BOUNDARY)]
-        # create landed positions
-        if landed != {}:
-            for (x, y) in landed.keys():
-                try:
-                    self.field[y+BOUNDARY][x+BOUNDARY] = 1
-                except IndexError:
-                    print('Error on landed piece placement')
-                    pass
-
-        # create boundary
-        for x, y in self.boundary:
-            try:
-                self.field[x][y] = 1
-            except IndexError:
-                print('Boundary positions are wrong')
-
-    def move_works(self, piece, move):  # collision is an object
-        srs = SRS(piece)
-
-        if action_space[move] == 'cw':
-            rotation_cords = get_rotation_cords(srs, 'cw', piece)
-
-            try:
-                return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
-            except IndexError:
-                print('Will try again')
-                pass
-
-        elif action_space[move] == 'ccw':
-            rotation_cords = get_rotation_cords(srs, 'ccw', piece)
-
-            try:
-                return all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in rotation_cords])
-            except IndexError:
-                print('Will try again')
-                pass
-
-        elif action_space[move] == 'down':
-            pos = piece.current_position()
-
-            try:
-                return all([self.field[y + BOUNDARY + 1][x + BOUNDARY] == 0 for x, y in pos])
-            except IndexError:
-                print('WIll try again')
-                pass
-
-        elif action_space[move] == 'right':
-            pos = piece.current_position()
-
-            try:
-                return all([self.field[y + BOUNDARY][x + BOUNDARY + 1] == 0 for x, y in pos])
-            except IndexError:
-                print('Will try again')
-                pass
-
-        elif action_space[move] == 'left':
-            pos = piece.current_position()
-
-            try:
-                return all([self.field[y + BOUNDARY][x + BOUNDARY - 1] == 0 for x, y in pos])
-            except IndexError:
-                print('Will try again')
-                pass
-
-        return False
-
-    def print_f(self):
-        for i in self.field:
-            print(i)
 
 
 class Board:
@@ -400,13 +450,21 @@ class Board:
                     position)  # .pop here removes colours from all rows above, and places them in their new positions
 
         self.lines += cleared_rows
-        self.score += score_game(cleared_rows, self.level)
+        self.score += self.score_game(cleared_rows)
 
         return cleared_rows
 
-    def print_field(self):
-        for i in self.grid:
-            print(i)
+    def score_game(self, cleared):
+        if cleared == 1:
+            return 40 + (40 * self.level)
+        elif cleared == 2:
+            return 100 + (100 * self.level)
+        elif cleared == 3:
+            return 300 + (300 * self.level)
+        elif cleared == 4:
+            return 1200 + (1200 * self.level)
+        else:
+            return 0
 
 class Piece_Gne:
     def __init__(self, bag):
@@ -427,44 +485,15 @@ class Piece_Gne:
 
         return popped
 
-    def get_piece(self):
+    def get_piece(self, landed):
         gen = self.generator_function()
         buffer = [next(gen) for _ in range(7)]
 
         popped = self.pop(buffer, gen)
 
         p = Piece(4, 0, popped)
+        p.srs.update_field(landed)
         return p
-
-
-def get_rotation_cords(srs, dir, piece):
-    data_for_I = data.Data('I', piece.rot_index).get_data()
-
-    if piece.str_id == 'I':
-        grid_cords = [(x + piece.x, y+ piece.y) for x, y in data_for_I]
-    else:
-        ascii_cords = srs.rotation(True, piece.state) if dir == 'cw' else srs.rotation(False, piece.state)
-
-        grid_cords = [(x+ piece.x, y + piece.y) for x, y in ascii_cords]
-
-    return grid_cords
-
-
-def score_game(cleared, level):
-    # more to be done
-    if cleared == 1:
-        return 40 + (40 * level)
-    elif cleared == 2:
-        return 100 + (100 * level)
-    elif cleared == 3:
-        return 300 + (300 * level)
-    elif cleared == 4:
-        return 1200 + (1200 * level)
-    else:
-        return 0
-
-def get_data(piece, rot_index):
-    return data.Data(piece, rot_index).get_data()
 
 class Tetris:
     def __init__(self):
@@ -472,8 +501,18 @@ class Tetris:
         # piece generation setup
         self.generate = Piece_Gne(['I', 'S', 'O', 'Z', 'T', 'L', 'J'])
 
+        # game board setup
+        self.landed = {}
+        self.lines = 0
+        self.score = 0
+        self.board = Board(self.landed, self.lines, self.score)
+        # self.collision = Collision()
+        # self.collision.create_field(self.landed)
+        self.tetrises = 0
+        self.grid = self.board.create_grid()
+
         # get starting piece object
-        self.current_piece = self.generate.get_piece()
+        self.current_piece = self.generate.get_piece(self.landed)
 
         # control parameters
         self.run = True
@@ -485,17 +524,7 @@ class Tetris:
         self.paused = False
 
         # get next piece
-        self.next_piece = self.generate.get_piece()
-
-        # game board setup
-        self.landed = {}
-        self.lines = 0
-        self.score = 0
-        self.board = Board(self.landed, self.lines, self.score)
-        self.collision = Collision()
-        self.collision.create_field(self.landed)
-        self.tetrises = 0
-        self.grid = self.board.create_grid()
+        self.next_piece = self.generate.get_piece(self.landed)
 
         # gravity setup
         self.fall_time = 0
@@ -503,8 +532,6 @@ class Tetris:
 
         # game clock
         self.clock = pygame.time.Clock()
-
-        self.best_move = None
 
     def draw_window(self):  # pass instance of board
         pygame.font.init()
@@ -553,9 +580,6 @@ class Tetris:
         for i in self.current_piece.current_position():
             self.landed[i] = self.current_piece.colour
 
-        #self.board.print_field()
-        #print(self.landed
-
         # clear rows
         cleared = self.board.clear_rows(self.grid)
 
@@ -565,17 +589,15 @@ class Tetris:
         # update game level
         self.board.level = self.lines // 10
 
-        self.collision.create_field(self.landed)
-        # self.collision.print_f()
-
         self.board.show_next_piece(self.win, self.next_piece)
 
-        self.lines, self.score = self.board.lines, self.board.score  # maybe set self.lines = cleared ?
+        self.lines, self.score = self.board.lines, self.board.score
 
+        self.next_piece.srs.update_field(self.landed)
         self.current_piece = self.next_piece
 
         if [WHITE] * 10 == self.grid[1] and [WHITE] * 10 == self.grid[0] and [WHITE] * 10 == self.grid[2]:
-            self.next_piece = self.generate.get_piece()
+            self.next_piece = self.generate.get_piece(self.landed)
             self.change_piece = False
 
     def game_logic(self):
@@ -590,14 +612,15 @@ class Tetris:
             self.fall_time += self.clock.get_rawtime()
             self.clock.tick()
 
+
             if self.fall_time / 1000 > self.fall_speed:
                 self.fall_time = 0
 
-                if self.collision.move_works(self.current_piece, pygame.K_DOWN):
-                    self.current_piece.y += 1
-                else:
+                if self.current_piece.make_move('down') is False:
                     self.board.score += 1
                     self.change_piece = True
+                else:
+                    pass
 
         self.win.fill(BG)
 
@@ -608,8 +631,7 @@ class Tetris:
                 self.run = False
             if event.type == pygame.KEYDOWN:
                 try:
-                    self.collision.create_field(self.landed)
-                    if not self.paused: self.make_move(event.key)
+                    if not self.paused: self.current_piece.make_move(action_space[event.key])
 
                     if action_space[event.key] == 'hold':
                         self.hold_piece = True if self.held_piece is None else False
@@ -619,6 +641,10 @@ class Tetris:
 
                     if action_space[event.key] == 'pause':
                         self.paused = not self.paused
+
+                    if action_space[event.key] == 'hd':
+                        for _ in range(100):
+                            self.current_piece.make_move('down')
                 except KeyError:
                     print('WRONG KEY!')
 
@@ -631,16 +657,13 @@ class Tetris:
                     try:
                         self.grid[y][x] = self.current_piece.colour
                     except IndexError:
-                        # crushes through the wall
-                        # print('wef')
                         self.run = False
 
         if self.hold_piece:
             self.held_piece = self.current_piece
             self.current_piece = self.next_piece
-            self.next_piece = self.generate.get_piece()
+            self.next_piece = self.generate.get_piece(self.landed)
             self.hold_piece = False
-
 
         if self.unhold_piece:
             self.held_piece.x, self.held_piece.y = self.current_piece.x, self.current_piece.y
@@ -653,43 +676,6 @@ class Tetris:
 
         if self.lost():
             self.run = False
-
-    def make_move(self, move):
-        if action_space[move] == 'down':
-            if self.collision.move_works(self.current_piece, move):
-                self.current_piece.y += 1
-
-        elif action_space[move] == 'right':
-            if self.collision.move_works(self.current_piece, move):
-                self.current_piece.x += 1
-            """else:
-                print('Collision with piece or wall')"""
-
-        elif action_space[move] == 'left':
-            if self.collision.move_works(self.current_piece, move):
-                self.current_piece.x -= 1
-            """else:
-                print('Collision with piece or wall')"""
-
-        elif action_space[move] == 'cw':
-            if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
-                self.current_piece.rotate('cw')
-                self.current_piece.rot_index = (self.current_piece.rot_index + 1) % 4
-
-        elif action_space[move] == 'ccw':
-            if self.collision.move_works(self.current_piece, move) != False and not self.current_piece.piece == O:
-                self.current_piece.rotate('ccw')
-                self.current_piece.rot_index = (self.current_piece.rot_index - 1) % 4
-
-        elif action_space[move] == 'hd':
-            works = True
-
-            while works:
-                self.current_piece.y += 1
-                works = self.collision.move_works(self.current_piece, pygame.K_DOWN)
-
-                if not works:
-                    break
 
 tetris_game = Tetris()
 

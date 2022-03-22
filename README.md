@@ -10,8 +10,8 @@ The population and nueral net are coded in neuralnet.py
 
 Update log
 _______________________________________________________
-train_agent_scratch.py now has capability to plot graphs after running all epochs, as well as saving a population every 2 epochs
-tetris.py -> human playable version now has complex moves implemented such as T-spins
+- train_agent_scratch.py now has capability to plot graphs after running all epochs, as well as saving a population every 2 epochs
+- tetris.py -> human playable version now has complex moves implemented such as T-spins
 
 A few things:
 _______________

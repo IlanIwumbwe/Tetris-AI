@@ -439,7 +439,7 @@ class Piece_Gne:
 
         popped = self.pop(buffer, gen)
 
-        p = Piece(4, 0, popped)
+        p = Piece(4, -1, popped)
         p.srs.update_field(landed)
         return p
 
@@ -465,21 +465,19 @@ class Tetris:
         self.show_piece = True
         self.held_piece = None
         self.change_piece = False
-        self.hold_piece = False
-        self.unhold_piece = False
-        self.paused = False
+        self.training = True
 
         # get next piece
         self.next_piece = self.generate.get_piece(self.landed)
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0.3
+        self.fall_speed = 0.08
 
         # game clock
         self.clock = pygame.time.Clock()
 
-        self.best_move = None # (1, (2, 21), [(6, 19), (7, 19), (7, 20), (7, 21)]) <- for testing
+        self.best_move = None #(2, (9, 21), [(6, 19), (7, 19), (7, 20), (7, 21)])
 
     def draw_window(self):  # pass instance of board
         pygame.font.init()
@@ -501,10 +499,10 @@ class Tetris:
         self.win.blit(next_text, (pos_x - 200, pos_y - 90))
         self.win.blit(hold_text, (pos_x - 90, pos_y - 90))
 
-        with open('controls.txt', 'r') as file:
+        """with open('controls.txt', 'r') as file:
             for ind, line in enumerate(file.readlines()):
                 c_r = font.render(line[:-1], True, BLACK)
-                self.win.blit(c_r, (pos_x, pos_y+(20*ind)))
+                self.win.blit(c_r, (pos_x, pos_y+(20*ind)))"""
 
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
@@ -525,8 +523,8 @@ class Tetris:
 
     def change_state(self):
         # lock position
-        for i in self.current_piece.current_position():
-            self.landed[i] = self.current_piece.colour
+        """for i in self.current_piece.current_position():
+            self.landed[i] = self.current_piece.colour"""
 
         # clear rows
         cleared = self.board.clear_rows(self.grid)
@@ -544,32 +542,25 @@ class Tetris:
         self.next_piece.srs.update_field(self.landed)
         self.current_piece = self.next_piece
 
-        if [WHITE] * 10 == self.grid[1] and [WHITE] * 10 == self.grid[0] and [WHITE] * 10 == self.grid[2]:
-            self.next_piece = self.generate.get_piece(self.landed)
-            self.change_piece = False
+        #if [WHITE] * 10 == self.grid[1] and [WHITE] * 10 == self.grid[0] and [WHITE] * 10 == self.grid[2]:
+        self.next_piece = self.generate.get_piece(self.landed)
+        self.change_piece = False
 
     def game_logic(self):
-        if self.paused:
-            self.grid = self.board.paused_grid()
-            self.show_piece = False
-        else:
-            self.grid = self.board.create_grid()
-            self.show_piece = True
+        self.grid = self.board.create_grid()
 
-        if not self.paused:
-            self.fall_time += self.clock.get_rawtime()
-            self.clock.tick()
+        """self.fall_time += self.clock.get_rawtime()
+        self.clock.tick()
 
+        if self.fall_time / 1000 > self.fall_speed:
+            self.fall_time = 0
 
-            if self.fall_time / 1000 > self.fall_speed:
-                self.fall_time = 0
-
-                if self.current_piece.make_move('down') is False:
-                    self.board.score += 1
-                    self.change_piece = True
-                else:
-                    pass
-
+            if self.current_piece.make_move('down') is False:
+                self.board.score += 1
+                self.change_piece = True
+            else:
+                pass
+        """
         self.win.fill(BG)
 
         pygame.display.set_caption('Tetris')
@@ -608,7 +599,7 @@ class Tetris:
         t_rot_state = target_config[0]
 
         diff = cu_rot_state - t_rot_state
-
+        """
         if diff < 0:
             for _ in range(abs(diff)):
                 self.current_piece.make_move('cw')
@@ -627,11 +618,18 @@ class Tetris:
 
         for _ in range(100):
             self.current_piece.make_move('down')
+        """
+
+        # time.sleep(1)
+        for i in target_config[2]:
+            self.landed[i] = self.current_piece.colour
+
+        self.change_piece = True
 
 
 # Only for testing, game loop for this tetris version is run in train_agent_scratch.py
-"""
-tetris_game = Tetris()
+
+"""tetris_game = Tetris()
 
 while tetris_game.run:
     tetris_game.game_logic()
@@ -639,8 +637,8 @@ while tetris_game.run:
     tetris_game.make_ai_move()
 
     if tetris_game.change_piece:
-        tetris_game.change_state()
-"""
+        tetris_game.change_state()"""
+
 
 
 

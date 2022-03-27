@@ -2,9 +2,7 @@ import random
 import pygame
 from pygame import mixer
 from itertools import permutations
-import data
 import numpy as np
-import time
 
 # game assets
 
@@ -274,16 +272,26 @@ class Piece:
         self.all = [(j, i) for i in range(4) for j in range(4)]
         self.centre = centres[self.str_id]
         self.colour = colours[self.str_id] if self.piece is not None else None
-        self.state_cords =  data.Data(self.str_id, 0).get_data()
+        self.state_cords = []
+
+        piece = [self.state[i:i + 4] for i in range(0, len(self.state), 4)]
+        for ind_x, row in enumerate(piece):
+            for ind_y, col in enumerate(row):
+                if col == 'x':
+                    self.state_cords.append((ind_y, ind_x))
         self.srs = SRS(self)
 
     def make_move(self, move):
         if move == 'right':
             if self.srs.make_move('right'):
                 self.x += 1
+            else:
+                print('Move is invalid')
         elif move == 'left':
             if self.srs.make_move('left'):
                 self.x -= 1
+            else:
+                print('Move is invalid')
         elif move == 'down':
             if self.srs.make_move('down'):
                 self.y += 1
@@ -541,12 +549,14 @@ class Tetris:
         pos_x = top_left_x + play_w
         pos_y = top_left_y + play_h // 2
 
-        score = font.render(f'Score: {self.board.score}', True, BLACK)
-        lines = font.render(f'Lines: {self.board.lines}', True, BLACK)
-        level = font.render(f'Level: {self.board.level}', True, BLACK)
-        next_text = font.render('NEXT PIECE', True, BLACK)
-        hold_text = font.render('HOLD PIECE', True, BLACK)
+        score = font.render(f'Score: {self.board.score}', True, WHITE)
+        lines = font.render(f'Lines: {self.board.lines}', True, WHITE)
+        level = font.render(f'Level: {self.board.level}', True, WHITE)
+        next_text = font.render('NEXT PIECE', True, WHITE)
+        hold_text = font.render('HOLD PIECE', True, WHITE)
+        bg = pygame.image.load("./images/bg4.jpg", "background")
 
+        self.win.blit(pygame.transform.scale(bg, (width, height)), (0, 0))
         self.win.blit(score, (pos_x - 200, pos_y + 50))
         self.win.blit(lines, (pos_x - 200, pos_y + 80))
         self.win.blit(level, (pos_x - 200, pos_y + 110))
@@ -555,7 +565,7 @@ class Tetris:
 
         with open('controls.txt', 'r') as file:
             for ind, line in enumerate(file.readlines()):
-                c_r = font.render(line[:-1], True, BLACK)
+                c_r = font.render(line[:-1], True, WHITE)
                 self.win.blit(c_r, (pos_x, pos_y+(20*ind)))
 
         self.board.show_next_piece(self.win, self.next_piece)

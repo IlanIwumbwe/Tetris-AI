@@ -1,10 +1,207 @@
 import tetris_ai
-import heuristics as hu
-import data
 import pickle
 from nueralnet import Population
 import matplotlib.pyplot as plt
 from matplotlib import style
+import numpy as np
+
+class Data:
+    def __init__(self, piece_id, test_rot_index):
+        self.str_id = piece_id  # its a string
+        self.rot_index = test_rot_index
+
+    def O(self):
+        O = {0: [(1, 1), (2, 1), (1, 2), (2, 2)],
+             1: [(1, 1), (2, 1), (1, 2), (2, 2)],
+             2: [(1, 1), (2, 1), (1, 2), (2, 2)],
+             3: [(1, 1), (2, 1), (1, 2), (2, 2)]
+             }
+        return O[self.rot_index]
+
+    def T(self):
+        T = {0: [(0, 2), (1, 2), (1, 1), (2, 2)],
+             1: [(1, 1), (1, 2), (1, 3), (2, 2)],
+             2: [(0, 2), (1, 2), (2, 2), (1, 3)],
+             3: [(1, 1), (1, 2), (1, 3), (0, 2)]
+             }
+        return T[self.rot_index]
+
+    def I(self):
+        I = {0: [(0, 1), (1, 1), (2, 1), (3, 1)],
+             1: [(1, 0), (1, 1), (1, 2), (1, 3)],
+             2: [(0, 1), (1, 1), (2, 1), (3, 1)],
+             3: [(1, 0), (1, 1), (1, 2), (1, 3)]
+             }
+        return I[self.rot_index]
+
+    def L(self):
+        L = {0: [(1, 2), (2, 2), (3, 2), (3, 1)],
+             1: [(2, 1), (2, 2), (2, 3), (3, 3)],
+             2: [(1, 2), (2, 2), (1, 3), (3, 2)],
+             3: [(1, 1), (2, 2), (2, 1), (2, 3)]
+             }
+        return L[self.rot_index]
+
+    def Z(self):
+        Z = {0: [(0, 1), (1, 2), (1, 1), (2, 2)],
+             1: [(2, 1), (1, 2), (2, 2), (1, 3)],
+             2: [(0, 2), (1, 2), (1, 3), (2, 3)],
+             3: [(0, 2), (1, 2), (1, 1), (0, 3)]
+             }
+        return Z[self.rot_index]
+
+    def J(self):
+        J = {0: [(0, 1), (1, 2), (0, 2), (2, 2)],
+             1: [(1, 1), (1, 2), (1, 3), (2, 1)],
+             2: [(0, 2), (1, 2), (2, 2), (2, 3)],
+             3: [(1, 1), (1, 2), (1, 3), (0, 3)]
+             }
+        return J[self.rot_index]
+
+    def S(self):
+        S = {0: [(0, 2), (1, 2), (1, 1), (2, 1)],
+             1: [(1, 1), (1, 2), (2, 2), (2, 3)],
+             2: [(1, 1), (1, 2), (2, 2), (2, 3)],
+             3: [(1, 3), (1, 2), (0, 3), (2, 2)]
+             }
+        return S[self.rot_index]
+
+    def get_data(self):
+        if self.str_id == 'O':
+            return self.O()
+        elif self.str_id == 'I':
+            return self.I()
+        elif self.str_id == 'Z':
+            return self.Z()
+        elif self.str_id == 'S':
+            return self.S()
+        elif self.str_id == 'T':
+            return self.T()
+        elif self.str_id == 'L':
+            return self.L()
+        elif self.str_id == 'J':
+            return self.J()
+
+class Heuristics:
+    def __init__(self, columns, rows):
+        self.width = columns
+        self.height = rows
+        self.field = [[0 for _ in range(self.width)] for _ in range(self.height)]
+
+    def update_field(self, field):  # get new field with updated 1s
+        self.field = field
+
+    # height of one column
+    def column_height(self, column):
+        for row in range(self.height):
+            if self.field[row][column] == 1:
+                return self.height - row
+        return 0
+
+    # max height
+    def max_height(self):
+        return max([self.column_height(col) for col in range(self.width)])
+
+    def min_height(self):
+        return min([self.column_height(col) for col in range(self.width)])
+
+    # number of holes in a column
+    def column_holes(self, column):
+        col_height = self.column_height(column)
+        holes = 0
+
+        for row in range(self.height - 1, -1, -1):
+            if self.field[row][column] == 0 and (self.height - row) < col_height:
+                holes += 1
+
+        return holes
+
+    # number of holes in all columns
+    def total_holes(self):
+        return sum([self.column_holes(col) for col in range(self.width)])
+
+    # bumpiness of terrain
+    def bumpiness(self):
+        total = 0
+        for col in range(self.width-1):
+            total += abs(self.column_height(col)-self.column_height(col+1))
+
+        return total
+
+    # std dev of heights
+    def std_heights(self):
+        heights = [self.column_height(col) for col in range(self.width)]
+        return np.std(heights)
+
+    # number of pits
+    def pits(self):
+        pits = 0
+        for col in range(self.width):
+            for row in range(self.height):
+                if all([self.field[row][col] == 0]):
+                    pits += 1
+
+        return pits
+
+    # row transitions
+    def row_transitions(self):
+        transitions = 0
+        for row in self.field:
+            if 1 in row:
+                for col in range(self.width-1):
+                    if (row[col] == 0 and row[col+1] == 1) or (row[col] == 1 and row[col+1] == 0):
+                        transitions += 1
+        return transitions
+
+    # col transitions
+    def col_transitions(self):
+        transitions = 0
+
+        for col in range(self.width):
+            for row in range(self.height-1):
+                if (self.field[row][col] == 1 and self.field[row+1][col] == 0) or (self.field[row][col] == 0 and self.field[row+1][col] == 1):
+                    transitions += 1
+        return transitions
+
+    def total_height(self):
+        return sum([self.column_height(i) for i in range(self.width)])
+
+    # deepest well
+    def deepest_well(self):
+        depths = []
+        for col in range(self.width):
+            if col == 0:
+                possible_depth = self.column_height(col+1) - self.column_height(col)
+                depths.append(possible_depth) if possible_depth > 0 else depths.append(0)
+            elif col == self.width-1:
+                possible_depth = self.column_height(col-1) - self.column_height(col)
+                depths.append(possible_depth) if possible_depth > 0 else 0
+            else:
+                pl = self.column_height(col-1) - self.column_height(col)
+                possible_depth_left = pl if pl > 0 else 0
+                pr = self.column_height(col+1) - self.column_height(col)
+                possible_depth_right = pr if pr > 0 else 0
+                depths.append(possible_depth_right) if possible_depth_right >= possible_depth_left else depths.append(possible_depth_left)
+
+        return max(depths)
+
+    # lines cleared
+    def lines_cleared(self):
+        lines = 0
+
+        for row in self.field:
+            if 0 not in row:
+                lines += 1
+
+        return lines
+
+    def print_num_grid(self):
+        print(' NEW FRAME ....................................')
+        for i in self.field:
+            print(i)
+
+    def get_heuristics(self):
+        return [self.deepest_well(), self.total_height(), self.total_holes(), self.bumpiness(), self.lines_cleared(), self.row_transitions(), self.std_heights(), self.pits(), self.col_transitions()]
 
 class AI_Agent:
     def __init__(self):  # piece is an object
@@ -12,7 +209,7 @@ class AI_Agent:
         self.columns = tetris_ai.COLUMNS
         self.field = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
         self.landed = None
-        self.heuris = hu.Heuristics(self.columns, self.rows)  # this is a heuristics obj
+        self.heuris = Heuristics(self.columns, self.rows)  # this is a heuristics obj
         self.best_move = None
         self.all_pieces = ['I', 'S', 'O', 'Z', 'T', 'L', 'J']
         self.all_configurations = []
@@ -25,7 +222,7 @@ class AI_Agent:
         positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if field[ind_x][ind_y] == 0] for ind_x in range(self.rows)]
         all_positions = [tupl for li in positions for tupl in li]
 
-        data_obj = data.Data(piece.str_id, None)
+        data_obj = Data(piece.str_id, None)
         all_configurations = []
 
         for pos_x in range(-3, self.columns+3):
@@ -196,6 +393,7 @@ class Trainer:
             print(f'HIGHSCORE: {self.record}')
             for neural_index in range(self.new_pop.size):
                 current_fitness = 0
+
                 tetris_game = tetris_ai.Tetris()
 
                 self.agent = AI_Agent()
@@ -228,22 +426,26 @@ class Trainer:
             self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/1000, self.new_pop.fitnesses, sum(scores)/1000, scores)
             self.old_pop = self.new_pop
 
-            if (epoch+1) % self.checkpoint == 0:
+            """if (epoch+1) % self.checkpoint == 0:
                 print('Saving models///////......')
                 self.old_pop.save_population(epoch)
-                print('Saved successfully////////////////')
+                print('Saved successfully////////////////')"""
 
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
             print(f'Average fitness: {self.epoch_data[epoch+1][0]}')
 
-    def draw_graphs(self):
         # plot graphs after epochs are done
         style.use("ggplot")
 
-        epochs = [e for e in self.epoch_data.keys()]
+        epochs = [e+1 for e in range(self.epochs)]
         av_fitness = [d[0] for d in self.epoch_data.values()]
+        #fitnesses = [d[1] for d in self.epoch_data.values()]
         av_score = [d[2] for d in self.epoch_data.values()]
+        #scores = [d[3] for d in self.epoch_data.values()]
 
+        print(epochs, av_fitness)
+        print(epochs, av_score)
+        # fitness graph
         plt.plot(epochs, av_fitness, color="red", label='Average fitness', marker=".")
 
         plt.title("Fitness against epochs")
@@ -253,7 +455,8 @@ class Trainer:
 
         plt.show()
 
-        plt.plot(epochs, av_score, label="Average score", marker=".", color="blue")
+        # Scores graph
+        plt.plot(epochs, av_score, label="Average score", marker=".")
 
         plt.title("Score against epochs")
         plt.xlabel("Epoch")
@@ -269,10 +472,9 @@ if __name__ == '__main__':
 
     if load == 'Y':
         trainer.eval(True, int(input('From which epoch: ')))
-        trainer.draw_graphs()
     else:
         trainer.eval(False, 0)
-        trainer.draw_graphs()
+
 
 
 

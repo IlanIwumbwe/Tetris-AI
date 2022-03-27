@@ -554,7 +554,7 @@ class Tetris:
         level = font.render(f'Level: {self.board.level}', True, WHITE)
         next_text = font.render('NEXT PIECE', True, WHITE)
         hold_text = font.render('HOLD PIECE', True, WHITE)
-        bg = pygame.image.load("./images/bg4.jpg", "background")
+        bg = pygame.image.load("bg4.jpg", "background")
 
         self.win.blit(pygame.transform.scale(bg, (width, height)), (0, 0))
         self.win.blit(score, (pos_x - 200, pos_y + 50))

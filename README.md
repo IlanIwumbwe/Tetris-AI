@@ -31,4 +31,10 @@ _____________________________________
 2, 4, 6 ,8 or 10. 
 - If you don't want to load a population, just enter. 
 
+Results
+_____________________________________
+![av_fitness](https://user-images.githubusercontent.com/56346800/160808808-9b650cb4-fae9-4637-b2c4-8f5732cb1f96.png)
+
+![av_score](https://user-images.githubusercontent.com/56346800/160808836-69ad4046-2200-4628-90f2-6b57addbdb87.png)
+
 * Training 10 epochs takes about 3 days, with a highscore of over 1 million. 

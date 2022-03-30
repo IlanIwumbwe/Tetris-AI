@@ -16,13 +16,15 @@ _______________________________________________________
 A few things:
 _______________
 
-This project has been inspired by these projects:
+This project would not have been possible without help from:
 
 - Used a gameboy emulator and pytorch to build a Tetris AI from scratch: https://towardsdatascience.com/beating-the-world-record-in-tetris-gb-with-genetics-algorithm-6c0b2f5ace9b
 - Explains use of a genetic algorithm without neural networks: https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/
 - The neural network was built upon an the example in Tariq Rashid's book (Build your own Neural Network) which uses a neural network to classify handwritten digits from the MNIST database: https://www.goodreads.com/en/book/show/29746976-make-your-own-neural-network
 - Explanation of genetic algorithms: https://lethain.com/genetic-algorithms-cool-name-damn-simple/
-- Ideas for implementation from Greer Viau, who also used a genetic algorithm to build a Tetris test: https://www.youtube.com/watch?v=1yXBNKubb2o&t=482s 
+- Ideas for implementation from Greer Viau, who also used a genetic algorithm to build a Tetris agent: https://www.youtube.com/watch?v=1yXBNKubb2o&t=482s 
+- The original paper on NEAT-Python: http://nn.cs.utexas.edu/downloads/papers/stanley.cec02.pdf
+- Using NEAT-Python for Sonic the Hedgehog: https://www.youtube.com/watch?v=pClGmU1JEsM&list=PLTWFMbPFsvz3CeozHfeuJIXWAJMkPtAdS
 
 How to train: 
 _____________________________________

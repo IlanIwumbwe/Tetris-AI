@@ -258,7 +258,7 @@ class AI_Agent:
                             final_global_cords = [(x + pos_x, y + pos_y - 1) for x, y in ascii_cords]
                             # check validity of rotation states
                             if all([cord in all_positions for cord in final_global_cords]):
-                                all_configurations.append(((pos_x, pos_y), index, final_global_cords))
+                                all_configurations.append(((pos_x, pos_y - 1), index, final_global_cords))
 
                             done = True
                         else:

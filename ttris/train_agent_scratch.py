@@ -217,6 +217,7 @@ class AI_Agent:
         self.next_state = None
         self.next_piece = None
         self.nueral_net = None
+        self.ablation = None
 
     def get_possible_configurations(self, piece, field, is_next_piece):
         positions = [[(ind_y, ind_x) for ind_y in range(self.columns) if field[ind_x][ind_y] == 0] for ind_x in range(self.rows)]
@@ -261,6 +262,7 @@ class AI_Agent:
                                 all_configurations.append(((pos_x, pos_y - 1), index, final_global_cords))
 
                             done = True
+
                         else:
                             pos_y += 1
             else:
@@ -329,7 +331,9 @@ class AI_Agent:
 
                 board_state = self.heuris.get_heuristics()
 
-                move_score += self.nueral_net.query(board_state)[0]
+                board_state_2 = [board_state[k] for k in range(len(board_state)) if k not in self.ablation]
+
+                move_score += self.nueral_net.query(board_state_2)[0]
 
                 for x, y in positions:
                     self.field[y][x] = 0
@@ -362,7 +366,13 @@ class Trainer:
         self.checkpoint = 2
         self.epoch_data = {}
 
-    def eval(self, load_population, epoch_number):
+    def eval(self, load_population, epoch_number, ablation):
+
+        if ablation is None:
+            li = []
+        else:
+            li = [int(j) for j in ablation.split(',')]
+
         if load_population:
             try:
                 path1 = f"./populations/{epoch_number}population.pkl"
@@ -373,7 +383,7 @@ class Trainer:
                 with open(path2, "rb") as f:
                     fitnesses = pickle.load(f)
 
-                self.old_pop = Population(1000, None)
+                self.old_pop = Population(1000, None, 9)
 
                 for ind, model in enumerate(self.old_pop.models):
                     model.wi_ha = weight_matrices[ind][0]
@@ -388,7 +398,7 @@ class Trainer:
         for epoch in range(self.epochs):
             print('__________________________________________')
             scores = []
-            self.new_pop = Population(1000, self.old_pop)
+            self.new_pop = Population(1000, self.old_pop, 9-len(li))
             print(f'EPOCH: {epoch+1}')
             print(f'HIGHSCORE: {self.record}')
             for neural_index in range(self.new_pop.size):
@@ -397,6 +407,7 @@ class Trainer:
                 tetris_game = tetris_ai.Tetris()
 
                 self.agent = AI_Agent()
+                self.agent.ablation = li
                 self.agent.nueral_net = self.new_pop.models[neural_index]
 
                 while tetris_game.run:
@@ -434,6 +445,7 @@ class Trainer:
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
             print(f'Average fitness: {self.epoch_data[epoch+1][0]}')
 
+    def visualise(self):
         # plot graphs after epochs are done
         style.use("ggplot")
 
@@ -468,12 +480,23 @@ class Trainer:
 if __name__ == '__main__':
     trainer = Trainer()
 
-    load = input('LOAD POPULATION: ')
+    print('_______ Ablation _______')
+    print("0 -> Deepest well\n1 -> Total height\n2 -> Total holes\n3-> Bumpiness\n4 -> Lines Cleared\n5 -> Row transitions\n6 -> Standard deviation of heights\n7 -> Number of pits\n8 -> Column transitions")
+    print('Input should be between 0 and 8, follow list above ¯\_(ツ)_/¯')
+    i = input('Type one number to index to the heuristic you want to remove or type a series of numbers separated by commas, Enter not to ablate: ')
 
-    if load == 'Y':
-        trainer.eval(True, int(input('From which epoch: ')))
+    if i:
+        trainer.eval(False, 0, i)
+        trainer.visualise()
     else:
-        trainer.eval(False, 0)
+        print('__________________________________')
+        load = input('LOAD POPULATION(L): Enter not to load ')
+        if load == 'L':
+            trainer.eval(True, int(input('From which epoch(2,4,6,8,10): ')), None)
+            trainer.visualise()
+        else:
+            trainer.eval(False, 0, None)
+            trainer.visualise()
 
 
 

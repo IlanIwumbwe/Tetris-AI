@@ -29,9 +29,8 @@ class Nueral_net:
 
         return final_outputs
 
-input_size = 9
-hidden_size_a = 8
-hidden_size_b = 8
+hidden_a_size = 8
+hidden_b_size = 8
 output_size = 1
 
 # genetic algorithm
@@ -40,13 +39,14 @@ elitism = 0.2
 mutation_power= 0.1
 
 class Population:
-    def __init__(self, size, old_population):
+    def __init__(self, size, old_population, input_size):
         self.size = size
         self.fitnesses = np.zeros(self.size)
+        self.input_size = input_size
         # at the start of the game, there's no old population
         if old_population is None:
             # set up population of nueral nets
-            self.models = [Nueral_net(input_size, hidden_size_a, hidden_size_b, output_size) for _ in range(self.size)]
+            self.models = [Nueral_net(self.input_size, hidden_a_size, hidden_b_size, output_size) for _ in range(self.size)]
         else:
             # get all nueral nets from previous iteration
             self.old_models = old_population.models
@@ -75,13 +75,13 @@ class Population:
 
                 # setup models from those indices
                 parent_a, parent_b = self.old_models[a], self.old_models[b]
-                child = Nueral_net(input_size, hidden_size_a, hidden_size_b, output_size)
+                child = Nueral_net(self.input_size, hidden_a_size, hidden_b_size, output_size)
                 a_fitness, b_fitness = self.old_fitnesses[a], self.old_fitnesses[b]
 
                 if a_fitness == 0 and b_fitness == 0:
-                    child.wi_ha = np.zeros((hidden_size_a, input_size))
-                    child.wha_hb = np.zeros((hidden_size_b, hidden_size_a))
-                    child.whb_o = np.zeros((output_size, hidden_size_b))
+                    child.wi_ha = np.zeros((hidden_a_size, self.input_size))
+                    child.wha_hb = np.zeros((hidden_b_size, hidden_a_size))
+                    child.whb_o = np.zeros((output_size, hidden_b_size))
 
                     prob_from_a = 0.5
 

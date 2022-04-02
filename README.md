@@ -12,6 +12,7 @@ Update log
 _______________________________________________________
 - train_agent_scratch.py now has capability to plot graphs after running all epochs, as well as saving a population every 2 epochs
 - tetris.py -> human playable version now has complex moves implemented such as T-spins
+- Ablation tests are now possible in tetris_agent_scatch.py
 
 A few things:
 _______________

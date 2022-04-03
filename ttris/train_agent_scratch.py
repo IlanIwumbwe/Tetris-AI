@@ -303,7 +303,8 @@ class AI_Agent:
 
                 self.heuris.update_field(self.next_state)
                 board_state = self.heuris.get_heuristics()
-                next_move_score = self.nueral_net.query(board_state)[0]
+                board_state_2 = [board_state[k] for k in range(len(board_state)) if k not in self.ablation]
+                next_move_score = self.nueral_net.query(board_state_2)[0]
 
                 for x, y in next_positions:
                     self.next_state[y][x] = 0

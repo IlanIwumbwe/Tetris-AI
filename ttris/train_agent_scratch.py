@@ -1,8 +1,7 @@
 import tetris_ai
 import pickle
 from nueralnet import Population
-import matplotlib.pyplot as plt
-from matplotlib import style
+from visualize import Visualize
 import numpy as np
 
 class Data:
@@ -446,37 +445,6 @@ class Trainer:
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
             print(f'Average fitness: {self.epoch_data[epoch+1][0]}')
 
-    def visualise(self):
-        # plot graphs after epochs are done
-        style.use("ggplot")
-
-        epochs = [e+1 for e in range(self.epochs)]
-        av_fitness = [d[0] for d in self.epoch_data.values()]
-        #fitnesses = [d[1] for d in self.epoch_data.values()]
-        av_score = [d[2] for d in self.epoch_data.values()]
-        #scores = [d[3] for d in self.epoch_data.values()]
-
-        print(epochs, av_fitness)
-        print(epochs, av_score)
-        # fitness graph
-        plt.plot(epochs, av_fitness, color="red", label='Average fitness', marker=".")
-
-        plt.title("Fitness against epochs")
-        plt.xlabel("Epoch")
-        plt.ylabel("Fitness")
-        plt.legend()
-
-        plt.show()
-
-        # Scores graph
-        plt.plot(epochs, av_score, label="Average score", marker=".")
-
-        plt.title("Score against epochs")
-        plt.xlabel("Epoch")
-        plt.ylabel("Score")
-        plt.legend()
-
-        plt.show()
 
 if __name__ == '__main__':
     trainer = Trainer()
@@ -488,16 +456,24 @@ if __name__ == '__main__':
 
     if i:
         trainer.eval(False, 0, i)
-        trainer.visualise()
+
+        vis = Visualize(list(trainer.epoch_data.keys()) + list(trainer.epoch_data.values()))
+        vis.visualize()
+
     else:
         print('__________________________________')
         load = input('LOAD POPULATION(L): Enter not to load ')
         if load == 'L':
             trainer.eval(True, int(input('From which epoch(2,4,6,8,10): ')), None)
-            trainer.visualise()
+
+            vis = Visualize(list(trainer.epoch_data.keys()) + list(trainer.epoch_data.values()))
+            vis.visualize()
         else:
             trainer.eval(False, 0, None)
-            trainer.visualise()
+
+            vis = Visualize(list(trainer.epoch_data.keys()) + list(trainer.epoch_data.values()))
+            vis.visualize()
+
 
 
 

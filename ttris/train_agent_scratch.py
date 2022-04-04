@@ -158,6 +158,7 @@ class AI_Agent:
     def print_field(self):
         for i in self.field:
             print(i)
+            
 class Data:
     def __init__(self, piece_id, test_rot_index):
         self.str_id = piece_id  # its a string
@@ -234,6 +235,7 @@ class Data:
             return self.L()
         elif self.str_id == 'J':
             return self.J()
+        
 class Trainer:
     def __init__(self):
         self.agent = AI_Agent()

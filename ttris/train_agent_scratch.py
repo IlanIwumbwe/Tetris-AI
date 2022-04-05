@@ -158,7 +158,7 @@ class AI_Agent:
     def print_field(self):
         for i in self.field:
             print(i)
-            
+
 class Data:
     def __init__(self, piece_id, test_rot_index):
         self.str_id = piece_id  # its a string
@@ -235,7 +235,7 @@ class Data:
             return self.L()
         elif self.str_id == 'J':
             return self.J()
-        
+
 class Trainer:
     def __init__(self):
         self.agent = AI_Agent()
@@ -337,7 +337,12 @@ if __name__ == '__main__':
     if i:
         trainer.eval(False, 0, i)
 
-        vis = Visualize(list(trainer.epoch_data.keys()) + list(trainer.epoch_data.values()))
+        avf = list(trainer.epoch_data.values())[0][0]
+        f = list(trainer.epoch_data.values())[0][1]
+        avs = list(trainer.epoch_data.values())[0][2]
+        s = list(trainer.epoch_data.values())[0][3]
+
+        vis = Visualize(list(trainer.epoch_data.keys()), avf, f, avs, s)
         vis.visualize()
 
     else:
@@ -346,12 +351,22 @@ if __name__ == '__main__':
         if load == 'L':
             trainer.eval(True, int(input('From which epoch(2,4,6,8,10): ')), None)
 
-            vis = Visualize(list(trainer.epoch_data.keys()) + list(trainer.epoch_data.values()))
+            avf = list(trainer.epoch_data.values())[0][0]
+            f = list(trainer.epoch_data.values())[0][1]
+            avs = list(trainer.epoch_data.values())[0][2]
+            s = list(trainer.epoch_data.values())[0][3]
+
+            vis = Visualize(list(trainer.epoch_data.keys()), avf, f, avs, s)
             vis.visualize()
         else:
             trainer.eval(False, 0, None)
 
-            vis = Visualize(list(trainer.epoch_data.keys()) + list(trainer.epoch_data.values()))
+            avf = list(trainer.epoch_data.values())[0][0]
+            f = list(trainer.epoch_data.values())[0][1]
+            avs = list(trainer.epoch_data.values())[0][2]
+            s = list(trainer.epoch_data.values())[0][3]
+
+            vis = Visualize(list(trainer.epoch_data.keys()), avf, f, avs, s)
             vis.visualize()
 
 

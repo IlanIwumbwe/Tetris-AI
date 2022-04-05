@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 from matplotlib import style
 
 class Visualize:
-    def __init__(self, *args):
-        self.epochs = args[0]  #epochs_list
-        self.afl = args[1] # av_fitness_list
-        self.asl = args[3] #av_score_list
-        self.sl = args[4] #score_list
-        self.fl = args[2] #fitness_list
+    def __init__(self, epochs_list, *args):
+        self.epochs = epochs_list
+        self.afl = args[1]  # av_fitness_list
+        self.asl = args[3]  #av_score_list
+        self.sl = args[4]   #score_list
+        self.fl = args[2]   #fitness_list
 
     def visualize(self):
         style.use('ggplot')

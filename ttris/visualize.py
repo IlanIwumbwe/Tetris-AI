@@ -4,10 +4,10 @@ from matplotlib import style
 class Visualize:
     def __init__(self, epochs_list, *args):
         self.epochs = epochs_list
-        self.afl = args[1]  # av_fitness_list
-        self.asl = args[3]  #av_score_list
-        self.sl = args[4]   #score_list
-        self.fl = args[2]   #fitness_list
+        self.afl = args[0]  # av_fitness_list
+        self.asl = args[2]  #av_score_list
+        self.sl = args[3]   #score_list
+        self.fl = args[1]   #fitness_list
 
     def visualize(self):
         style.use('ggplot')

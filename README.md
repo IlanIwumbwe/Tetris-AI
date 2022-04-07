@@ -36,4 +36,8 @@ _____________________________________
 
 Results
 _______________________________
-Resuts are still under review. It does very well (up to 1 million) but I think that it might be going too fast to compute an actual best move on its own. Or maybe something else is wrong. I will retrain at lower speeds and show updated graphs
+- Over 1 million highscore after 10 epochs of training 
+
+
+![av_fitness](https://user-images.githubusercontent.com/56346800/162254605-8b0fb67c-1f60-45b1-9aea-97c2fb17eb83.png)
+![av_score](https://user-images.githubusercontent.com/56346800/162254617-61dce174-5056-4c1e-b6cd-f347576ee134.png)

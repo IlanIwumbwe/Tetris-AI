@@ -117,49 +117,72 @@ class SRS:
             except IndexError:
                 print('Boundary positions are wrong')
 
-    def make_move(self, move):  # collision is an object
+    def make_move(self, move):
         if move == 'cw' or move == 'ccw':
             if move == 'cw':
+                # get basic rotation cords after 1 clockwise rotation
                 basic_rot_cords = self.basic_rotation(True)
             else:
+                # get basic rotation cords after 1 anticlockwise rotation
                 basic_rot_cords = self.basic_rotation(False)
 
             new_state = ['.' for _ in range(16)]
 
+            # get correct wall kick data
             wk_data = self.wall_kick_data()
 
             trials = 0
+
+            # let the final coordinates be the current coordinates
             final_x, final_y = self.piece.x, self.piece.y
+
+            # try every shift value (5 of them)
             for x_shift, y_shift in wk_data:
+                # increment trials made
                 trials += 1
+
+                # set up grid coordinates of the piece, shifting the coordinates
                 grid_cords =[(x+self.piece.x+x_shift, y+self.piece.y-y_shift) for x, y in basic_rot_cords]
 
                 try:
                     if all([self.field[y + BOUNDARY][x + BOUNDARY] == 0 for x, y in grid_cords]):
+                        # if the move works, set final x and final y to be the coordinates after the shift
                         final_x = self.piece.x + x_shift
                         final_y = self.piece.y - y_shift
                         break
                     else:
+                        # if move is invalid move on to next test
                         continue
                 except IndexError:
                     continue
-
+            
+            """
+            Move is made if the basic rotation worked, which is trials = 1 and coordinates are not shifted
+            OR
+            If more than one trial was made and the variables final_x and final_y have changed, they must have produced
+            a valid move
+            """
             if (trials == 1 and ((final_x == self.piece.x) and (final_y == self.piece.y))) or \
                     (trials > 1 and ((final_x != self.piece.x) or (final_y != self.piece.y))):
+                # set the new state coordinates of the piece, as this move works
                 self.piece.state_cords = basic_rot_cords
+                # this move works under these coordinates, final_x and final_y
                 self.piece.x, self.piece.y = final_x, final_y
-
+                
+                # set the new state of the piece
                 for x, y in self.piece.state_cords:
                     ind = 4 * y + x
                     new_state[ind] = 'x'
 
                 self.piece.state = ''.join(new_state)
-
+                
+                # change rotation index accordingly
                 if move == 'cw':
                     self.piece.rot_index += 1
                 else:
                     self.piece.rot_index -= 1
             else:
+                # the move is impossible, do noting
                 pass
 
         elif move == 'down':
@@ -316,7 +339,7 @@ class Piece:
         return [(r_x+self.x, r_y+self.y) for r_x, r_y in self.state_cords]
 
     def get_config(self):
-        return self.rot_index, (self.x, self.y), self.current_position(), 0
+        return self.rot_index, (self.x, self.y), self.current_position()
 
 
 class Board:
@@ -366,9 +389,6 @@ class Board:
         pos_y = top_left_y
 
         n_p = [held_piece.piece[i:i + 4] for i in range(0, len(held_piece.piece), 4)]
-
-        # outer rectangle
-        # pygame.draw.rect(surface, (100,100,100), (pos_x, pos_y, play_w//2+60, play_h), 3)
 
         # next piece
         for ind_x, row in enumerate(n_p):
@@ -549,11 +569,11 @@ class Tetris:
         pos_x = top_left_x + play_w
         pos_y = top_left_y + play_h // 2
 
-        score = font.render(f'Score: {self.board.score}', True, WHITE)
-        lines = font.render(f'Lines: {self.board.lines}', True, WHITE)
-        level = font.render(f'Level: {self.board.level}', True, WHITE)
-        next_text = font.render('NEXT PIECE', True, WHITE)
-        hold_text = font.render('HOLD PIECE', True, WHITE)
+        score = font.render(f'Score: {self.board.score}', True, BLACK)
+        lines = font.render(f'Lines: {self.board.lines}', True, BLACK)
+        level = font.render(f'Level: {self.board.level}', True, BLACK)
+        next_text = font.render('NEXT PIECE', True, BLACK)
+        hold_text = font.render('HOLD PIECE', True, BLACK)
         bg = pygame.image.load("./images/xp.jpg", "background")
 
         self.win.blit(pygame.transform.scale(bg, (width, height)), (0, 0))
@@ -565,8 +585,8 @@ class Tetris:
 
         with open('controls.txt', 'r') as file:
             for ind, line in enumerate(file.readlines()):
-                c_r = font.render(line[:-1], True, WHITE)
-                self.win.blit(c_r, (pos_x, pos_y+(20*ind)))
+                c_r = font.render(line[:-1], True, BLACK)
+                self.win.blit(c_r, (pos_x-10, pos_y+(20*ind)))
 
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
@@ -642,6 +662,8 @@ class Tetris:
             if event.type == pygame.KEYDOWN:
                 try:
                     if not self.paused: self.current_piece.make_move(action_space[event.key])
+
+                    #print(self.current_piece.get_config())
 
                     if action_space[event.key] == 'hold':
                         self.hold_piece = True if self.held_piece is None else False

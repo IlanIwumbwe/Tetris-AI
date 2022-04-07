@@ -499,11 +499,6 @@ class Tetris:
         self.win.blit(next_text, (pos_x - 200, pos_y - 90))
         self.win.blit(hold_text, (pos_x - 90, pos_y - 90))
 
-        """with open('controls.txt', 'r') as file:
-            for ind, line in enumerate(file.readlines()):
-                c_r = font.render(line[:-1], True, BLACK)
-                self.win.blit(c_r, (pos_x, pos_y+(20*ind)))"""
-
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
         if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)

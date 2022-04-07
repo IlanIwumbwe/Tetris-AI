@@ -343,7 +343,7 @@ if __name__ == '__main__':
         av_scores = []
         all_scores = []
         
-        for epoch, data in trainer.epoch_data.values():
+        for epoch, data in trainer.epoch_data.items():
             epochs.append(epoch)
             av_fitnesses.append(data[0])
             all_fitnesses.append(data[1])
@@ -366,7 +366,7 @@ if __name__ == '__main__':
             av_scores = []
             all_scores = []
 
-            for epoch, data in trainer.epoch_data.values():
+            for epoch, data in trainer.epoch_data.items():
                 epochs.append(epoch)
                 av_fitnesses.append(data[0])
                 all_fitnesses.append(data[1])
@@ -384,7 +384,7 @@ if __name__ == '__main__':
             av_scores = []
             all_scores = []
 
-            for epoch, data in trainer.epoch_data.values():
+            for epoch, data in trainer.epoch_data.items():
                 epochs.append(epoch)
                 av_fitnesses.append(data[0])
                 all_fitnesses.append(data[1])

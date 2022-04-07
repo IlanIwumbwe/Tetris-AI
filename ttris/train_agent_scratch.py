@@ -242,7 +242,7 @@ class Trainer:
         self.record = 0
         self.new_pop = None
         self.old_pop = None
-        self.epochs = 10
+        self.epochs = 1
         self.checkpoint = 2
         self.epoch_data = {}
 
@@ -336,13 +336,22 @@ if __name__ == '__main__':
 
     if i:
         trainer.eval(False, 0, i)
-
-        avf = list(trainer.epoch_data.values())[0][0]
-        f = list(trainer.epoch_data.values())[0][1]
-        avs = list(trainer.epoch_data.values())[0][2]
-        s = list(trainer.epoch_data.values())[0][3]
-
-        vis = Visualize(list(trainer.epoch_data.keys()), avf, f, avs, s)
+        
+        epochs = []
+        av_fitnesses = []
+        all_fitnesses = []
+        av_scores = []
+        all_scores = []
+        
+        for epoch, data in trainer.epoch_data.values():
+            epochs.append(epoch)
+            av_fitnesses.append(data[0])
+            all_fitnesses.append(data[1])
+            av_scores.append(data[2])
+            all_scores.append(data[3])
+            
+        
+        vis = Visualize(epochs, all_fitnesses, all_fitnesses, av_scores, all_scores)
         vis.visualize()
 
     else:
@@ -351,22 +360,38 @@ if __name__ == '__main__':
         if load == 'L':
             trainer.eval(True, int(input('From which epoch(2,4,6,8,10): ')), None)
 
-            avf = list(trainer.epoch_data.values())[0][0]
-            f = list(trainer.epoch_data.values())[0][1]
-            avs = list(trainer.epoch_data.values())[0][2]
-            s = list(trainer.epoch_data.values())[0][3]
+            epochs = []
+            av_fitnesses = []
+            all_fitnesses = []
+            av_scores = []
+            all_scores = []
 
-            vis = Visualize(list(trainer.epoch_data.keys()), avf, f, avs, s)
+            for epoch, data in trainer.epoch_data.values():
+                epochs.append(epoch)
+                av_fitnesses.append(data[0])
+                all_fitnesses.append(data[1])
+                av_scores.append(data[2])
+                all_scores.append(data[3])
+
+            vis = Visualize(epochs, all_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()
         else:
             trainer.eval(False, 0, None)
 
-            avf = list(trainer.epoch_data.values())[0][0]
-            f = list(trainer.epoch_data.values())[0][1]
-            avs = list(trainer.epoch_data.values())[0][2]
-            s = list(trainer.epoch_data.values())[0][3]
+            epochs = []
+            av_fitnesses = []
+            all_fitnesses = []
+            av_scores = []
+            all_scores = []
 
-            vis = Visualize(list(trainer.epoch_data.keys()), avf, f, avs, s)
+            for epoch, data in trainer.epoch_data.values():
+                epochs.append(epoch)
+                av_fitnesses.append(data[0])
+                all_fitnesses.append(data[1])
+                av_scores.append(data[2])
+                all_scores.append(data[3])
+
+            vis = Visualize(epochs, all_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()
 
 

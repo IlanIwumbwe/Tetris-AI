@@ -351,7 +351,7 @@ if __name__ == '__main__':
             all_scores.append(data[3])
             
         
-        vis = Visualize(epochs, all_fitnesses, all_fitnesses, av_scores, all_scores)
+        vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
         vis.visualize()
 
     else:
@@ -373,7 +373,7 @@ if __name__ == '__main__':
                 av_scores.append(data[2])
                 all_scores.append(data[3])
 
-            vis = Visualize(epochs, all_fitnesses, all_fitnesses, av_scores, all_scores)
+            vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()
         else:
             trainer.eval(False, 0, None)
@@ -391,7 +391,7 @@ if __name__ == '__main__':
                 av_scores.append(data[2])
                 all_scores.append(data[3])
 
-            vis = Visualize(epochs, all_fitnesses, all_fitnesses, av_scores, all_scores)
+            vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()
 
 

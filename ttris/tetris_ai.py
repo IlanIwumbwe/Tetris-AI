@@ -619,11 +619,12 @@ class Tetris:
         for _ in range(100):
             self.current_piece.make_move('down')
         """
-
-        # time.sleep(1)
+        
         for i in target_config[2]:
             self.landed[i] = self.current_piece.colour
-
+            
+        time.sleep(0.2)
+        
         self.change_piece = True
 
 

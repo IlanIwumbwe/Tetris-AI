@@ -589,41 +589,10 @@ class Tetris:
         return self.tetrises*50 + self.score*5
 
     def make_ai_move(self):
-        current_config = self.current_piece.get_config()  # exp : (3, (7, 21), [(7, 20), (8, 20), (9, 20), (7, 21)])
         target_config = self.best_move  # exp: (0, (7, 21), [(6, 19), (7, 19), (7, 20), (7, 21)])
-
-        cu_x, cu_y = current_config[1]
-        t_x, t_y = target_config[1]
-
-        cu_rot_state = current_config[0]
-        t_rot_state = target_config[0]
-
-        diff = cu_rot_state - t_rot_state
-        """
-        if diff < 0:
-            for _ in range(abs(diff)):
-                self.current_piece.make_move('cw')
-        else:
-            for _ in range(abs(diff)):
-                self.current_piece.make_move('ccw')
-
-        moves = t_x - cu_x
-
-        if t_x > cu_x:
-            for _ in range(abs(moves)):
-                self.current_piece.make_move('right')
-        else:
-            for _ in range(abs(moves)):
-                self.current_piece.make_move('left')
-
-        for _ in range(100):
-            self.current_piece.make_move('down')
-        """
         
         for i in target_config[2]:
             self.landed[i] = self.current_piece.colour
-            
-        time.sleep(0.2)
         
         self.change_piece = True
 

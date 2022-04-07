@@ -4,7 +4,6 @@ This code is for my NEA project, A level computer science.
 _____________________________________________________________________________
 Optimisation using a genetic algorithm to make an AI that plays good Tetris
 - train_agent_scratch.py uses a genetic algorithm written from scratch, without next piece knowledge (hasn't been optimised yet)
-- With next piece knowledge, agent gains over 400k by 2nd generation, in comparison, without, it gains over 400k at 7th generation
 
 The population and nueral net are coded in neuralnet.py
 
@@ -35,9 +34,5 @@ _____________________________________
 - If you don't want to load a population, just enter. 
 
 Results
-_____________________________________
-![av_fitness](https://user-images.githubusercontent.com/56346800/160808808-9b650cb4-fae9-4637-b2c4-8f5732cb1f96.png)
-
-![av_score](https://user-images.githubusercontent.com/56346800/160808836-69ad4046-2200-4628-90f2-6b57addbdb87.png)
-
-* Training 10 epochs takes about 3 days, with a highscore of over 1 million. 
+_______________________________
+Resuts are still under review. It does very well (up to 1 million) but I think that it might be going too fast to compute an actual best move on its own. Or maybe something else is wrong. I will retrain at lower speeds and show updated graphs

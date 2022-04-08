@@ -242,9 +242,10 @@ class Trainer:
         self.record = 0
         self.new_pop = None
         self.old_pop = None
-        self.epochs = 1
+        self.epochs = 10
         self.checkpoint = 2
         self.epoch_data = {}
+        self.population_size = 250
 
     def eval(self, load_population, epoch_number, ablation):
 
@@ -263,7 +264,7 @@ class Trainer:
                 with open(path2, "rb") as f:
                     fitnesses = pickle.load(f)
 
-                self.old_pop = Population(1000, None, 9)
+                self.old_pop = Population(self.population_size, None, 9)
 
                 for ind, model in enumerate(self.old_pop.models):
                     model.wi_ha = weight_matrices[ind][0]
@@ -278,7 +279,7 @@ class Trainer:
         for epoch in range(self.epochs):
             print('__________________________________________')
             scores = []
-            self.new_pop = Population(1000, self.old_pop, 9-len(li))
+            self.new_pop = Population(self.population_size, self.old_pop, 9-len(li))
             print(f'EPOCH: {epoch+1}')
             print(f'HIGHSCORE: {self.record}')
             for neural_index in range(self.new_pop.size):
@@ -309,12 +310,17 @@ class Trainer:
                         self.new_pop.fitnesses[neural_index] = current_fitness
                         break
 
+                    progress = [True for _ in range(0, neural_index)] + [False for _ in
+                                                                         range(neural_index, self.new_pop.size)]
+                    tetris_game.set_genome_progress(progress, epoch + 1, self.record, max(self.new_pop.fitnesses),
+                                                    sum(self.new_pop.fitnesses) / self.new_pop.size)
+
                 scores.append(tetris_game.score)
                 if tetris_game.score > self.record:
                     self.record = tetris_game.score
                     print(f'HIGHSCORE: {self.record}')
 
-            self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/1000, self.new_pop.fitnesses, sum(scores)/1000, scores)
+            self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/self.population_size, self.new_pop.fitnesses, sum(scores)/self.population_size, scores)
             self.old_pop = self.new_pop
 
             """if (epoch+1) % self.checkpoint == 0:
@@ -343,8 +349,8 @@ if __name__ == '__main__':
         av_scores = []
         all_scores = []
         
-        for epoch, data in trainer.epoch_data.items():
-            epochs.append(epoch)
+        for e, data in trainer.epoch_data.items():
+            epochs.append(e)
             av_fitnesses.append(data[0])
             all_fitnesses.append(data[1])
             av_scores.append(data[2])
@@ -366,8 +372,8 @@ if __name__ == '__main__':
             av_scores = []
             all_scores = []
 
-            for epoch, data in trainer.epoch_data.items():
-                epochs.append(epoch)
+            for e, data in trainer.epoch_data.items():
+                epochs.append(e)
                 av_fitnesses.append(data[0])
                 all_fitnesses.append(data[1])
                 av_scores.append(data[2])
@@ -384,8 +390,8 @@ if __name__ == '__main__':
             av_scores = []
             all_scores = []
 
-            for epoch, data in trainer.epoch_data.items():
-                epochs.append(epoch)
+            for e, data in trainer.epoch_data.items():
+                epochs.append(e)
                 av_fitnesses.append(data[0])
                 all_fitnesses.append(data[1])
                 av_scores.append(data[2])

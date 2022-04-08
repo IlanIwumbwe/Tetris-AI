@@ -1,8 +1,6 @@
 import random
 import pygame
-from pygame import mixer
 from itertools import permutations
-import data
 import numpy as np
 import time
 
@@ -72,13 +70,13 @@ ROWS = 20 + 2  # 2 extra rows for spawning
 COLUMNS = 10
 
 # dimensions
-width = 800
+width = 1000
 height = 650
 block_size = 20
 play_w = ROWS * block_size
 play_h = COLUMNS * block_size
 
-top_left_x = (width - play_w) // 2 - 100
+top_left_x = (width - play_w) // 2 - 200
 top_left_y = height - play_h - 400
 
 # font and music!
@@ -91,7 +89,6 @@ mixer.music.play(-1)"""
 class SRS:
     def __init__(self, piece):  # piece is an object
         self.piece = piece
-        self.centre = self.piece.centre
         self.rot_index = self.piece.rot_index
         self.clockwise = True
         self.desired_rot_index = None
@@ -119,7 +116,7 @@ class SRS:
             except IndexError:
                 print('Boundary positions are wrong')
 
-    def make_move(self, move):  # collision is an object
+    def make_move(self, move):
         if move == 'cw' or move == 'ccw':
             if move == 'cw':
                 state_cords = self.basic_rotation(True)
@@ -173,7 +170,7 @@ class SRS:
     def basic_rotation(self, clockwise):
         mat = None
         piece = [self.piece.state[i:i + 4] for i in range(0, len(self.piece.state), 4)]
-        c_x, c_y = self.centre
+        c_x, c_y = self.piece.centre
 
         global_cords = []
         new_global_cords = []
@@ -222,7 +219,13 @@ class Piece:
         self.all = [(j, i) for i in range(4) for j in range(4)]
         self.centre = centres[self.str_id]
         self.colour = colours[self.str_id] if self.piece is not None else None
-        self.state_cords =  data.Data(self.str_id, 0).get_data()
+        self.state_cords = []
+
+        piece = [self.state[i:i + 4] for i in range(0, len(self.state), 4)]
+        for ind_x, row in enumerate(piece):
+            for ind_y, col in enumerate(row):
+                if col == 'x':
+                    self.state_cords.append((ind_y, ind_x))
         self.srs = SRS(self)
 
     def make_move(self, move):
@@ -256,7 +259,7 @@ class Piece:
         return [(r_x+self.x, r_y+self.y) for r_x, r_y in self.state_cords]
 
     def get_config(self):
-        return self.rot_index, (self.x, self.y), self.current_position(), 0
+        return self.rot_index, (self.x, self.y), self.current_position()
 
 
 class Board:
@@ -265,10 +268,7 @@ class Board:
         self.score = score
         self.lines = lines
         self.level = 0
-        self.paused_effect = [(2,18),(2,19),(2,20),(3,18),(3,20),(4,18),(4,19),(4,20),(5,20),(6,20),(5,17),(6,17),(3,17),(4,17),(4,15),
-                             (4,16),(2,16),(3,15),(5,15),(6,15),(2,14),(2,12),(3,12),(3,14),(4,12),(4,14),(5,12),(5,14),(6,13),(3,11),
-                             (2,10),(2,9),(4,9),(4,10),(5,8),(6,9),(6,10),(6,11),(2,8),(2,7),(2,6),(4,8),(4,7),(4,6),(6,8),
-                             (6,7),(6,6),(3,8),(2,5),(3,5),(4,5),(5,5),(6,5),(6,4),(2,4),(3,3),(4,3),(5,3)]
+        
     def create_grid(self):
         # if you want to change colour of grid, change _____ to desired colour! (except tetromino colour)
         GRID = [[WHITE for column in range(COLUMNS)] for row in range(ROWS)]
@@ -278,16 +278,6 @@ class Board:
                 if (j, i) in self.landed:
                     # set colour if position is landed i.e there is a piece there
                     GRID[i][j] = self.landed[(j, i)]
-
-        return GRID
-
-    def paused_grid(self):
-        GRID = [[BLACK for column in range(COLUMNS)] for row in range(ROWS)]
-        random_colour = colours[random.choice(['J','L','S','T','Z','O','I'])]
-        for i in range(ROWS):
-            for j in range(COLUMNS):
-                if (j, i) in self.paused_effect:
-                    GRID[i][j] = random_colour
 
         return GRID
 
@@ -337,6 +327,24 @@ class Board:
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 0)
                     pygame.draw.rect(surface, BLACK, (
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 2)
+
+    @staticmethod
+    def show_progress(surface, pop):
+        bl_size = 12
+        pos_x = top_left_x + 360
+        pos_y = top_left_y
+
+        p = [pop[i:i + 40] for i in range(0, len(pop), 40)]
+
+        for ind_x, k in enumerate(p):
+            for ind_y, j in enumerate(k):
+                pygame.draw.rect(surface, GREY,
+                                 (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
+                if j:
+                    pygame.draw.rect(surface, ORANGE,
+                                     (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
+                pygame.draw.rect(surface, BLACK,
+                                 (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 1)
 
     @staticmethod
     def render_grid(surface, grid):
@@ -443,7 +451,14 @@ class Piece_Gne:
         p.srs.update_field(landed)
         return p
 
+
 class Tetris:
+    current_gen = 0
+    pop = [False for _ in range(1000)]  # 1000 is the number of genomes in the population. Change if needed
+    h_score = 0
+    best_fitness = 0
+    av_fitness = 0
+    
     def __init__(self):
         self.win = pygame.display.set_mode((width, height))
         # piece generation setup
@@ -472,11 +487,12 @@ class Tetris:
 
         # gravity setup
         self.fall_time = 0
-        self.fall_speed = 0.08
+        self.fall_speed = 0.3
 
         # game clock
         self.clock = pygame.time.Clock()
 
+        # AI
         self.best_move = None #(2, (9, 21), [(6, 19), (7, 19), (7, 20), (7, 21)])
 
     def draw_window(self):  # pass instance of board
@@ -489,24 +505,39 @@ class Tetris:
 
         score = font.render(f'Score: {self.board.score}', True, BLACK)
         lines = font.render(f'Lines: {self.board.lines}', True, BLACK)
-        level = font.render(f'Level: {self.board.level}', True, BLACK)
+        tetrises = font.render(f'Level: {self.tetrises}', True, BLACK)
         next_text = font.render('NEXT PIECE', True, BLACK)
-        hold_text = font.render('HOLD PIECE', True, BLACK)
 
-        self.win.blit(score, (pos_x - 200, pos_y + 50))
-        self.win.blit(lines, (pos_x - 200, pos_y + 80))
-        self.win.blit(level, (pos_x - 200, pos_y + 110))
-        self.win.blit(next_text, (pos_x - 200, pos_y - 90))
-        self.win.blit(hold_text, (pos_x - 90, pos_y - 90))
+        # AI stuff
+        gen = font.render(f'Generation : {Tetris.current_gen}', True, BLACK)
+        h_score = font.render(f'Highscore: {Tetris.h_score}', True, BLACK)
+        bf = font.render(f'Best fitness: {Tetris.best_fitness}', True, BLACK)
+        avf = font.render(f'Average Fitness: {Tetris.av_fitness}', True, BLACK)
+
+        self.win.blit(next_text, (pos_x-200, pos_y-80))
+
+        game_texts = [score, lines, tetrises]
+        ai_texts = [gen, h_score, bf, avf]
+
+        for ind, t in enumerate(game_texts):
+            self.win.blit(t, (pos_x - 200, pos_y + ind*40))
+
+        for ind, t in enumerate(ai_texts):
+            self.win.blit(t, (pos_x-60, top_left_y + (len(Tetris.pop)//40)*15 + ind*40 + 20))
 
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
+        self.board.show_progress(self.win, Tetris.pop)
         if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
         pygame.display.update()
 
-    def update_scores(self):
-        with open('tetris_champs.txt', 'a') as file:
-            file.write(f'\nScore: {self.score} ......  Lines: {self.lines}')
+    @staticmethod
+    def set_genome_progress(pop, gen, h_score, best_fitness, av_fitness):
+        Tetris.current_gen = gen
+        Tetris.pop = pop
+        Tetris.h_score = h_score
+        Tetris.best_fitness = best_fitness
+        Tetris.av_fitness = av_fitness
 
     def lost(self):
         # if piece touches top of grid, its a loss
@@ -554,8 +585,7 @@ class Tetris:
                 self.board.score += 1
                 self.change_piece = True
             else:
-                pass
-        """
+                pass"""
         self.win.fill(BG)
 
         pygame.display.set_caption('Tetris')
@@ -585,24 +615,13 @@ class Tetris:
 
     def make_ai_move(self):
         target_config = self.best_move  # exp: (0, (7, 21), [(6, 19), (7, 19), (7, 20), (7, 21)])
-        
+
         for i in target_config[2]:
             self.landed[i] = self.current_piece.colour
-        
+
         self.change_piece = True
 
 
-# Only for testing, game loop for this tetris version is run in train_agent_scratch.py
-
-"""tetris_game = Tetris()
-
-while tetris_game.run:
-    tetris_game.game_logic()
-
-    tetris_game.make_ai_move()
-
-    if tetris_game.change_piece:
-        tetris_game.change_state()"""
 
 
 

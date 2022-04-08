@@ -12,11 +12,13 @@ class Visualize:
     def visualize(self):
         style.use('ggplot')
 
+        max_fitnesses = []
         for ind, e in enumerate(self.epochs):
             # 1000 is number of genomes in population, change if needed
-            max_fitness = max(self.fl[ind])
-            plt.scatter([e for _ in range(1000)], self.fl[ind], color='lightseagreen', label='All fitnesses per epoch')
-            plt.plot([e], [max_fitness], color='lightseagreen',label='Max fitness per epoch',marker='.')
+            max_fitnesses.append(max(self.fl[ind]))
+            plt.scatter([e for _ in range(1000)], self.fl[ind], color='lightseagreen')
+
+        plt.plot(self.epochs, max_fitnesses, color='red',label='Max fitness per epoch',marker='.')
 
         plt.plot(self.epochs, self.afl, marker=".", label='Average fitness per epoch',color='gold')
         plt.xlabel('Epochs')
@@ -24,11 +26,13 @@ class Visualize:
         plt.legend()
         plt.show()
 
+        max_scores = []
         for ind, e in enumerate(self.epochs):
             # 1000 is number of genomes in population, change if needed
-            max_score = max(self.sl[ind])
-            plt.scatter([e for _ in range(1000)], self.sl[ind], color='lightskyblue', label='All scores per epoch')
-            plt.plot([e], [max_score], color='lightskyblue',label='Max score per epoch',marker='.') 
+            max_scores.append(max(self.sl[ind]))
+            plt.scatter([e for _ in range(1000)], self.sl[ind], color='lightskyblue')
+
+        plt.plot(self.epochs, max_scores, color='red',label='Max score per epoch',marker='.')
 
         plt.plot(self.epochs, self.asl, marker=".", label='Average score per epoch',color='gold')
         plt.xlabel('Epochs')

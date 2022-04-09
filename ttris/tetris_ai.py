@@ -336,7 +336,7 @@ class Board:
 
         for ind_x in range(pop_size//40):
             for ind_y in range(40):
-                if (pop_size//40)*ind_x + ind_y+1 <= genome_count:
+                if 40*ind_x + ind_y+1 <= genome_count:
                     pygame.draw.rect(surface, ORANGE,
                                      (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
                 else:

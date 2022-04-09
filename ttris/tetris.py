@@ -155,7 +155,7 @@ class SRS:
                         continue
                 except IndexError:
                     continue
-            
+
             """
             Move is made if the basic rotation worked, which is trials = 1 and coordinates are not shifted
             OR
@@ -168,14 +168,14 @@ class SRS:
                 self.piece.state_cords = basic_rot_cords
                 # this move works under these coordinates, final_x and final_y
                 self.piece.x, self.piece.y = final_x, final_y
-                
+
                 # set the new state of the piece
                 for x, y in self.piece.state_cords:
                     ind = 4 * y + x
                     new_state[ind] = 'x'
 
                 self.piece.state = ''.join(new_state)
-                
+
                 # change rotation index accordingly
                 if move == 'cw':
                     self.piece.rot_index += 1
@@ -335,7 +335,7 @@ class Piece:
             else:
                 self.srs.make_move('ccw')
 
-    def current_position(self):  # get grid positions of a passed piece object
+    def current_position(self):
         return [(r_x+self.x, r_y+self.y) for r_x, r_y in self.state_cords]
 
     def get_config(self):
@@ -348,10 +348,11 @@ class Board:
         self.score = score
         self.lines = lines
         self.level = 0
-        self.paused_effect = [(2,18),(2,19),(2,20),(3,18),(3,20),(4,18),(4,19),(4,20),(5,20),(6,20),(5,17),(6,17),(3,17),(4,17),(4,15),
-                             (4,16),(2,16),(3,15),(5,15),(6,15),(2,14),(2,12),(3,12),(3,14),(4,12),(4,14),(5,12),(5,14),(6,13),(3,11),
-                             (2,10),(2,9),(4,9),(4,10),(5,8),(6,9),(6,10),(6,11),(2,8),(2,7),(2,6),(4,8),(4,7),(4,6),(6,8),
-                             (6,7),(6,6),(3,8),(2,5),(3,5),(4,5),(5,5),(6,5),(6,4),(2,4),(3,3),(4,3),(5,3)]
+        self.paused_effect = [(2,18),(2,19),(2,20),(3,18),(3,20),(4,18),(4,19),(4,20),(5,20),(6,20),(5,17),(6,17),
+                              (3,17),(4,17),(4,15),(4,16),(2,16),(3,15),(5,15),(6,15),(2,14),(2,12),(3,12),(3,14),
+                              (4,12),(4,14),(5,12),(5,14),(6,13),(3,11),(2,10),(2,9),(4,9),(4,10),(5,8),(6,9),
+                              (6,10),(6,11),(2,8),(2,7),(2,6),(4,8),(4,7),(4,6),(6,8),(6,7),(6,6),(3,8),
+                              (2,5),(3,5),(4,5),(5,5),(6,5),(6,4),(2,4),(3,3),(4,3),(5,3)]
     def create_grid(self):
         # if you want to change colour of grid, change _____ to desired colour! (except tetromino colour)
         GRID = [[WHITE for column in range(COLUMNS)] for row in range(ROWS)]
@@ -390,7 +391,6 @@ class Board:
 
         n_p = [held_piece.piece[i:i + 4] for i in range(0, len(held_piece.piece), 4)]
 
-        # next piece
         for ind_x, row in enumerate(n_p):
             for ind_y, column in enumerate(row):
                 if column == 'x':
@@ -572,14 +572,17 @@ class Tetris:
         score = font.render(f'Score: {self.board.score}', True, BLACK)
         lines = font.render(f'Lines: {self.board.lines}', True, BLACK)
         level = font.render(f'Level: {self.board.level}', True, BLACK)
+        tetrises = font.render(f'Tetrises: {self.tetrises}', True, BLACK)
         next_text = font.render('NEXT PIECE', True, BLACK)
         hold_text = font.render('HOLD PIECE', True, BLACK)
         bg = pygame.image.load("./images/xp.jpg", "background")
 
         self.win.blit(pygame.transform.scale(bg, (width, height)), (0, 0))
-        self.win.blit(score, (pos_x - 200, pos_y + 50))
-        self.win.blit(lines, (pos_x - 200, pos_y + 80))
-        self.win.blit(level, (pos_x - 200, pos_y + 110))
+        game_texts = [score, lines, level, tetrises]
+
+        for ind, t in enumerate(game_texts):
+            self.win.blit(t, (pos_x - 200, pos_y + ind * 40))
+
         self.win.blit(next_text, (pos_x - 200, pos_y - 90))
         self.win.blit(hold_text, (pos_x - 90, pos_y - 90))
 
@@ -592,10 +595,6 @@ class Tetris:
         self.board.render_grid(self.win, self.grid)
         if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
         pygame.display.update()
-
-    def update_scores(self):
-        with open('tetris_champs.txt', 'a') as file:
-            file.write(f'\nScore: {self.score} ......  Lines: {self.lines}')
 
     def lost(self):
         # if piece touches top of grid, its a loss

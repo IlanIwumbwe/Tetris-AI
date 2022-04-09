@@ -245,7 +245,7 @@ class Trainer:
         self.epochs = 10
         self.checkpoint = 2
         self.epoch_data = {}
-        self.population_size = 250
+        self.population_size = 1000
 
     def eval(self, load_population, epoch_number, ablation):
 
@@ -310,9 +310,7 @@ class Trainer:
                         self.new_pop.fitnesses[neural_index] = current_fitness
                         break
 
-                    progress = [True for _ in range(0, neural_index)] + [False for _ in
-                                                                         range(neural_index, self.new_pop.size)]
-                    tetris_game.set_genome_progress(progress, epoch + 1, self.record, max(self.new_pop.fitnesses),
+                    tetris_game.set_genome_progress(neural_index+1, epoch + 1, self.new_pop.size, self.record, max(self.new_pop.fitnesses),
                                                     sum(self.new_pop.fitnesses) / self.new_pop.size)
 
                 scores.append(tetris_game.score)

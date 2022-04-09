@@ -268,7 +268,7 @@ class Board:
         self.score = score
         self.lines = lines
         self.level = 0
-        
+
     def create_grid(self):
         # if you want to change colour of grid, change _____ to desired colour! (except tetromino colour)
         GRID = [[WHITE for column in range(COLUMNS)] for row in range(ROWS)]
@@ -329,19 +329,18 @@ class Board:
                         pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 2)
 
     @staticmethod
-    def show_progress(surface, pop):
+    def show_progress(surface, genome_count, pop_size):
         bl_size = 12
         pos_x = top_left_x + 360
         pos_y = top_left_y
 
-        p = [pop[i:i + 40] for i in range(0, len(pop), 40)]
-
-        for ind_x, k in enumerate(p):
-            for ind_y, j in enumerate(k):
-                pygame.draw.rect(surface, GREY,
-                                 (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
-                if j:
+        for ind_x in range(pop_size//40):
+            for ind_y in range(40):
+                if (pop_size//40)*ind_x + ind_y+1 <= genome_count:
                     pygame.draw.rect(surface, ORANGE,
+                                     (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
+                else:
+                    pygame.draw.rect(surface, GREY,
                                      (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
                 pygame.draw.rect(surface, BLACK,
                                  (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 1)
@@ -454,11 +453,11 @@ class Piece_Gne:
 
 class Tetris:
     current_gen = 0
-    pop = [False for _ in range(1000)]  # 1000 is the number of genomes in the population. Change if needed
+    genome_count = 0
+    pop_size = 0
     h_score = 0
     best_fitness = 0
     av_fitness = 0
-    
     def __init__(self):
         self.win = pygame.display.set_mode((width, height))
         # piece generation setup
@@ -523,18 +522,19 @@ class Tetris:
             self.win.blit(t, (pos_x - 200, pos_y + ind*40))
 
         for ind, t in enumerate(ai_texts):
-            self.win.blit(t, (pos_x-60, top_left_y + (len(Tetris.pop)//40)*15 + ind*40 + 20))
+            self.win.blit(t, (pos_x-60, top_left_y + (Tetris.pop_size//40)*15 + ind*40 + 20))
 
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
-        self.board.show_progress(self.win, Tetris.pop)
+        self.board.show_progress(self.win, Tetris.genome_count, Tetris.pop_size)
         if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
         pygame.display.update()
 
     @staticmethod
-    def set_genome_progress(pop, gen, h_score, best_fitness, av_fitness):
+    def set_genome_progress(genome_count, gen, pop_size, h_score, best_fitness, av_fitness):
         Tetris.current_gen = gen
-        Tetris.pop = pop
+        Tetris.genome_count = genome_count
+        Tetris.pop_size = pop_size
         Tetris.h_score = h_score
         Tetris.best_fitness = best_fitness
         Tetris.av_fitness = av_fitness

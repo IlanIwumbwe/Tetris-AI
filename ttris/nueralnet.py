@@ -70,7 +70,8 @@ class Population:
                 # if model within elitism critical region, select it as is
                 child = self.old_models[fitness_indices[i]]
             else:
-                # select 2 best performing fitness indices using probs
+                # select 2 best performing fitness indices using probs, do not replace,
+                # so indices cannot be selected twice
                 a, b = np.random.choice(self.size, size=2, p=probs, replace=False)
 
                 # setup models from those indices

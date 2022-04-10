@@ -19,12 +19,12 @@ class Nueral_net:
     def query(self, input_list):
         inputs = np.array(input_list, ndmin=2).T
 
-        hidden_a_inputs = np.dot(self.wi_ha, inputs)
+        hidden_a_inputs = np.matmul(self.wi_ha, inputs)
         hidden_a_outputs = self.activation_func(hidden_a_inputs)
-        hidden_b_inputs = np.dot(self.wha_hb, hidden_a_outputs)
+        hidden_b_inputs = np.matmul(self.wha_hb, hidden_a_outputs)
         hidden_b_outputs = self.activation_func(hidden_b_inputs)
 
-        final_inputs = np.dot(self.whb_o, hidden_b_outputs)
+        final_inputs = np.matmul(self.whb_o, hidden_b_outputs)
         final_outputs = self.activation_func(final_inputs)
 
         return final_outputs

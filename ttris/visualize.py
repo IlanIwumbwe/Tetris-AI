@@ -14,10 +14,8 @@ class Visualize:
 
         max_fitnesses = []
         for ind, e in enumerate(self.epochs):
-            # 1000 is number of genomes in population, change if needed
             max_fitnesses.append(max(self.fl[ind]))
-            plt.scatter([e for _ in range(1000)], self.fl[ind], color='lightseagreen')
-
+        
         plt.plot(self.epochs, max_fitnesses, color='red',label='Max fitness per epoch',marker='.')
 
         plt.plot(self.epochs, self.afl, marker=".", label='Average fitness per epoch',color='gold')
@@ -28,10 +26,8 @@ class Visualize:
 
         max_scores = []
         for ind, e in enumerate(self.epochs):
-            # 1000 is number of genomes in population, change if needed
             max_scores.append(max(self.sl[ind]))
-            plt.scatter([e for _ in range(1000)], self.sl[ind], color='lightskyblue')
-
+         
         plt.plot(self.epochs, max_scores, color='red',label='Max score per epoch',marker='.')
 
         plt.plot(self.epochs, self.asl, marker=".", label='Average score per epoch',color='gold')

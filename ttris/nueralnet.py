@@ -62,11 +62,10 @@ class Population:
         sum_of_fitnesses = np.sum(self.old_fitnesses)
         probs = [self.old_fitnesses[i]/sum_of_fitnesses for i in range(self.size)]
 
-        # sort by order of fitness (descending)
-        fitness_indices = np.argsort(probs)[::-1]
-
         for i in range(self.size):
             if i < self.size*elitism:
+                # sort by order of fitness (descending)
+                fitness_indices = np.argsort(probs)[::-1]
                 # if model within elitism critical region, select it as is
                 child = self.old_models[fitness_indices[i]]
             else:

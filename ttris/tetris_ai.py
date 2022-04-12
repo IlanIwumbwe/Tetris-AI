@@ -336,8 +336,11 @@ class Board:
 
         for ind_x in range(pop_size//40):
             for ind_y in range(40):
-                if 40*ind_x + ind_y+1 <= genome_count:
+                if 40*ind_x + ind_y+1 < genome_count:
                     pygame.draw.rect(surface, ORANGE,
+                                     (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
+                elif 40*ind_x + ind_y+1 == genome_count:
+                    pygame.draw.rect(surface, GREEN,
                                      (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
                 else:
                     pygame.draw.rect(surface, GREY,
@@ -522,11 +525,12 @@ class Tetris:
             self.win.blit(t, (pos_x - 200, pos_y + ind*40))
 
         for ind, t in enumerate(ai_texts):
-            self.win.blit(t, (pos_x-60, top_left_y + (Tetris.pop_size//40)*15 + ind*40 + 20))
+            self.win.blit(t, (pos_x-60, top_left_y + (Tetris.pop_size//40)*15 + ind*30 + 20))
 
         self.board.show_next_piece(self.win, self.next_piece)
         self.board.render_grid(self.win, self.grid)
         self.board.show_progress(self.win, Tetris.genome_count, Tetris.pop_size)
+
         if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
         pygame.display.update()
 
@@ -611,7 +615,7 @@ class Tetris:
             self.run = False
 
     def fitness_func(self):
-        return self.tetrises*50 + self.score*5
+        return self.tetrises*50 + self.score*5 + 10
 
     def make_ai_move(self):
         target_config = self.best_move  # exp: (0, (7, 21), [(6, 19), (7, 19), (7, 20), (7, 21)])

@@ -3,6 +3,8 @@ import pickle
 from nueralnet import Population
 from visualize import Visualize
 from heuristics import Heuristics
+from time import process_time
+import numpy as np
 
 
 class AI_Agent:
@@ -256,22 +258,20 @@ class Trainer:
 
         if load_population:
             try:
+                self.old_pop = Population(self.population_size, None, 9)
+
                 path1 = f"./populations/{epoch_number}population.pkl"
                 with open(path1, "rb") as f:
                     weight_matrices = pickle.load(f)
-
-                path2 = f"./populations/{epoch_number}fitness.pkl"
-                with open(path2, "rb") as f:
-                    fitnesses = pickle.load(f)
-
-                self.old_pop = Population(self.population_size, None, 9)
 
                 for ind, model in enumerate(self.old_pop.models):
                     model.wi_ha = weight_matrices[ind][0]
                     model.wha_hb = weight_matrices[ind][1]
                     model.whb_o = weight_matrices[ind][2]
 
-                self.old_pop.fitnesses = fitnesses
+                path2 = f"./populations/{epoch_number}fitness.pkl"
+
+                self.old_pop.fitnesses = np.load(path2, allow_pickle=True)
 
             except FileNotFoundError or FileExistsError:
                 print('File not found, or it does not exist')
@@ -318,7 +318,7 @@ class Trainer:
                     self.record = tetris_game.score
                     print(f'HIGHSCORE: {self.record}')
 
-            self.epoch_data[epoch+1] = (sum(self.new_pop.fitnesses)/self.population_size, self.new_pop.fitnesses, sum(scores)/self.population_size, scores)
+            self.epoch_data[epoch+1] = (np.sum(self.new_pop.fitnesses)/self.population_size, list(self.new_pop.fitnesses), sum(scores)/self.population_size, scores)
             self.old_pop = self.new_pop
 
             """if (epoch+1) % self.checkpoint == 0:
@@ -338,14 +338,20 @@ if __name__ == '__main__':
     print('Input should be between 0 and 8, follow list above ¯\_(ツ)_/¯')
     i = input('Type one number to index to the heuristic you want to remove or type a series of numbers separated by commas, Enter not to ablate: ')
 
+    epochs = []
+    av_fitnesses = []
+    all_fitnesses = []
+    av_scores = []
+    all_scores = []
+
     if i:
+        start_time = process_time()
+
         trainer.eval(False, 0, i)
-        
-        epochs = []
-        av_fitnesses = []
-        all_fitnesses = []
-        av_scores = []
-        all_scores = []
+
+        end_time = process_time()
+
+        print(f'Training time(hrs): {(end_time-start_time)//3600}')
         
         for e, data in trainer.epoch_data.items():
             epochs.append(e)
@@ -353,7 +359,8 @@ if __name__ == '__main__':
             all_fitnesses.append(data[1])
             av_scores.append(data[2])
             all_scores.append(data[3])
-            
+
+        print(f'{epochs},\n{av_fitnesses},\n{all_fitnesses},\n{av_scores},\n{all_scores}')
         
         vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
         vis.visualize()
@@ -362,13 +369,13 @@ if __name__ == '__main__':
         print('__________________________________')
         load = input('LOAD POPULATION(L): Enter not to load ')
         if load == 'L':
+            start_time = process_time()
+
             trainer.eval(True, int(input('From which epoch(2,4,6,8,10): ')), None)
 
-            epochs = []
-            av_fitnesses = []
-            all_fitnesses = []
-            av_scores = []
-            all_scores = []
+            end_time = process_time()
+
+            print(f'Training time(hrs): {(end_time-start_time)//3600}')
 
             for e, data in trainer.epoch_data.items():
                 epochs.append(e)
@@ -376,17 +383,17 @@ if __name__ == '__main__':
                 all_fitnesses.append(data[1])
                 av_scores.append(data[2])
                 all_scores.append(data[3])
+
+            print(f'{epochs},\n{av_fitnesses},\n{all_fitnesses},\n{av_scores},\n{all_scores}')
 
             vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()
         else:
+            start_time = process_time()
             trainer.eval(False, 0, None)
+            end_time = process_time()
 
-            epochs = []
-            av_fitnesses = []
-            all_fitnesses = []
-            av_scores = []
-            all_scores = []
+            print(f'Training time: {(end_time-start_time)//3600}')
 
             for e, data in trainer.epoch_data.items():
                 epochs.append(e)
@@ -394,6 +401,8 @@ if __name__ == '__main__':
                 all_fitnesses.append(data[1])
                 av_scores.append(data[2])
                 all_scores.append(data[3])
+
+            print(f'{epochs},\n{av_fitnesses},\n{all_fitnesses},\n{av_scores},\n{all_scores}')
 
             vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()

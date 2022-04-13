@@ -328,6 +328,7 @@ class Trainer:
 
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
             print(f'Average fitness: {self.epoch_data[epoch+1][0]}')
+            print(f'Average score : {sum(self.epoch_data[epoch+1][3])/self.population_size}')
 
 
 if __name__ == '__main__':
@@ -360,7 +361,7 @@ if __name__ == '__main__':
             av_scores.append(data[2])
             all_scores.append(data[3])
 
-        print(f'{epochs},\n{av_fitnesses},\n{all_fitnesses},\n{av_scores},\n{all_scores}')
+        print(f'Epochs:{epochs},\n\nAverage fitnesses\n{av_fitnesses},\n\nAll fitnesses\n{all_fitnesses},\n\nAverage scores\n{av_scores},\nAll scores\n\n\n{all_scores}')
         
         vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
         vis.visualize()
@@ -384,7 +385,7 @@ if __name__ == '__main__':
                 av_scores.append(data[2])
                 all_scores.append(data[3])
 
-            print(f'{epochs},\n{av_fitnesses},\n{all_fitnesses},\n{av_scores},\n{all_scores}')
+            print(f'Epochs:{epochs},\n\nAverage fitnesses\n{av_fitnesses},\n\nAll fitnesses\n{all_fitnesses},\n\nAverage scores\n{av_scores},\nAll scores\n\n\n{all_scores}')
 
             vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()
@@ -402,7 +403,7 @@ if __name__ == '__main__':
                 av_scores.append(data[2])
                 all_scores.append(data[3])
 
-            print(f'{epochs},\n{av_fitnesses},\n{all_fitnesses},\n{av_scores},\n{all_scores}')
+            print(f'Epochs:{epochs},\n\nAverage fitnesses\n{av_fitnesses},\n\nAll fitnesses\n{all_fitnesses},\n\nAverage scores\n{av_scores},\nAll scores\n\n\n{all_scores}')
 
             vis = Visualize(epochs, av_fitnesses, all_fitnesses, av_scores, all_scores)
             vis.visualize()

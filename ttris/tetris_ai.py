@@ -2,7 +2,6 @@ import random
 import pygame
 from itertools import permutations
 import numpy as np
-import time
 
 # game assets
 
@@ -82,9 +81,6 @@ top_left_y = height - play_h - 400
 # font and music!
 f = 'freesansbold.ttf'
 
-"""mixer.init()
-mixer.music.load('tetris-gameboy-02.ogg')
-mixer.music.play(-1)"""
 
 class SRS:
     def __init__(self, piece):  # piece is an object
@@ -291,25 +287,6 @@ class Board:
                     print('Problem')
 
     @staticmethod
-    def show_held_piece(surface, held_piece):
-        pos_x = top_left_x + play_w - 100
-        pos_y = top_left_y
-
-        n_p = [held_piece.piece[i:i + 4] for i in range(0, len(held_piece.piece), 4)]
-
-        # outer rectangle
-        # pygame.draw.rect(surface, (100,100,100), (pos_x, pos_y, play_w//2+60, play_h), 3)
-
-        # next piece
-        for ind_x, row in enumerate(n_p):
-            for ind_y, column in enumerate(row):
-                if column == 'x':
-                    pygame.draw.rect(surface, held_piece.colour, (
-                        pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 0)
-                    pygame.draw.rect(surface, BLACK, (
-                        pos_x + ind_y * block_size + 20, pos_y + ind_x * block_size + 20, block_size, block_size), 2)
-
-    @staticmethod
     def show_next_piece(surface, next_piece):
         pos_x = top_left_x + play_w - 220
         pos_y = top_left_y
@@ -480,7 +457,6 @@ class Tetris:
         # control parameters
         self.run = True
         self.show_piece = True
-        self.held_piece = None
         self.change_piece = False
         self.training = True
 
@@ -531,7 +507,6 @@ class Tetris:
         self.board.render_grid(self.win, self.grid)
         self.board.show_progress(self.win, Tetris.genome_count, Tetris.pop_size)
 
-        if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
         pygame.display.update()
 
     @staticmethod

@@ -38,6 +38,10 @@ Results
 _______________________________
 - Over 1 million highscore after 10 epochs of training 
 
+Graphing:
+If graphs don't work automatically, program will print out all the data with text so you know what is what, you'll have to manually pass it into
+the visualization class. Make an object in that file and pass data in there, then run the visualisation file. Sorry 
+
 
 ![av_fitness](https://user-images.githubusercontent.com/56346800/162254605-8b0fb67c-1f60-45b1-9aea-97c2fb17eb83.png)
 ![av_score](https://user-images.githubusercontent.com/56346800/162254617-61dce174-5056-4c1e-b6cd-f347576ee134.png)

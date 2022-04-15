@@ -25,6 +25,12 @@ class Visualize:
         plt.legend()
         plt.show()
 
+        plt.plot(self.epochs, self.afl, marker=".", label='Average fitness per epoch', color='blue')
+        plt.xlabel('Epochs')
+        plt.ylabel('Fitness')
+        plt.legend()
+        plt.show()
+
         max_scores = []
         for ind, e in enumerate(self.epochs):
             max_scores.append(max(self.sl[ind]))
@@ -38,3 +44,8 @@ class Visualize:
         plt.legend()
         plt.show()
 
+        plt.plot(self.epochs, self.asl, marker=".", label='Average score per epoch', color='blue')
+        plt.xlabel('Epochs')
+        plt.ylabel('Score')
+        plt.legend()
+        plt.show()

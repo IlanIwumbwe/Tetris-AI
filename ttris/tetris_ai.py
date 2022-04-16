@@ -311,18 +311,19 @@ class Board:
         bl_size = 12
         pos_x = top_left_x + 360
         pos_y = top_left_y
+        group = 40
 
-        for ind_x in range((pop_size//40) + 1):
-            if pop_size < 40:
+        for ind_x in range((pop_size//group) + 1):
+            if pop_size < group:
                 val = pop_size
             else:
-                val = min(40, abs(pop_size-40*ind_x))
+                val = min(group, abs(pop_size-group*ind_x))
 
             for ind_y in range(val):
-                if 40*ind_x + ind_y+1 < genome_count:
+                if group*ind_x + ind_y+1 < genome_count:
                     pygame.draw.rect(surface, ORANGE,
                                      (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
-                elif 40*ind_x + ind_y+1 == genome_count:
+                elif group*ind_x + ind_y+1 == genome_count:
                     pygame.draw.rect(surface, GREEN,
                                      (pos_x + (ind_y * bl_size), pos_y + (ind_x * bl_size), bl_size, bl_size), 0)
                 else:

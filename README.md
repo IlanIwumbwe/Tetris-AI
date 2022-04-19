@@ -25,7 +25,8 @@ This project would not have been possible without help from:
 - Ideas for implementation from Greer Viau, who also used a genetic algorithm to build a Tetris agent: https://www.youtube.com/watch?v=1yXBNKubb2o&t=482s 
 - The original paper on NEAT-Python: http://nn.cs.utexas.edu/downloads/papers/stanley.cec02.pdf
 - Using NEAT-Python for Sonic the Hedgehog: https://www.youtube.com/watch?v=pClGmU1JEsM&list=PLTWFMbPFsvz3CeozHfeuJIXWAJMkPtAdS
-- Explanation of wall kicks and the Super Rotation System: https://harddrop.com/wiki/SRS
+- Explanation of wall kicks and the Super Rotation System: https://harddrop.com/wiki/SR
+- Uses a local search algorithm to build a Tetris agent: https://github.com/saagar/ai-tetris/blob/master/paper/tetrais.pdf
 
 How to train: 
 _____________________________________

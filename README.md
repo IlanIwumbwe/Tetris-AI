@@ -27,6 +27,8 @@ This project would not have been possible without help from:
 - Using NEAT-Python for Sonic the Hedgehog: https://www.youtube.com/watch?v=pClGmU1JEsM&list=PLTWFMbPFsvz3CeozHfeuJIXWAJMkPtAdS
 - Explanation of wall kicks and the Super Rotation System: https://harddrop.com/wiki/SR
 - Uses a local search algorithm to build a Tetris agent: https://github.com/saagar/ai-tetris/blob/master/paper/tetrais.pdf
+- Used this as an idea of how to write a line clearing algorithm: https://www.youtube.com/watch?v=HcGQB1nHOOM&t=934s
+- Foundational ideas for Tetris Implementation by Javidx9 on the OneLoneCoder channel: https://www.youtube.com/watch?v=8OK8_tHeCIA&t=1083s
 
 How to train: 
 _____________________________________

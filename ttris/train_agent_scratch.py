@@ -321,10 +321,10 @@ class Trainer:
             self.epoch_data[epoch+1] = (np.sum(self.new_pop.fitnesses)/self.population_size, list(self.new_pop.fitnesses), sum(scores)/self.population_size, scores)
             self.old_pop = self.new_pop
 
-            """if (epoch+1) % self.checkpoint == 0:
+            if (epoch+1) % self.checkpoint == 0:
                 print('Saving models///////......')
                 self.old_pop.save_population(epoch)
-                print('Saved successfully////////////////')"""
+                print('Saved successfully////////////////')
 
             print(f'Best fitness: {max(self.epoch_data[epoch+1][1])}')
             print(f'Average fitness: {self.epoch_data[epoch+1][0]}')

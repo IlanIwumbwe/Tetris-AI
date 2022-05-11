@@ -44,7 +44,7 @@ _______________________________
 
 Graphing:
 If graphs don't work automatically, program will print out all the data with text so you know what is what, you'll have to manually pass it into
-the visualization class. Make an object in that file and pass data in there, then run the visualisation file. Sorry 
+the visualization class. Make an object in that file and pass data in there, then run the visualisation file. 
 
 
 ![av_fitness](https://user-images.githubusercontent.com/56346800/162254605-8b0fb67c-1f60-45b1-9aea-97c2fb17eb83.png)

@@ -596,52 +596,7 @@ class Tetris:
         if self.held_piece is not None: self.board.show_held_piece(self.win, self.held_piece)
         pygame.display.update()
 
-        def draw_window(self):  
-        pygame.font.init()
-
-        font = pygame.font.Font(f, 15)
-
-        pos_x = top_left_x + play_w
-        pos_y = top_left_y + play_h // 2
-
-        score = font.render(f'Score: {self.board.score}', True, BLACK)
-        lines = font.render(f'Lines: {self.board.lines}', True, BLACK)
-        tetrises = font.render(f'Level: {self.tetrises}', True, BLACK)
-        next_text = font.render('NEXT PIECE', True, BLACK)
-
-        # AI stuff
-        gen = font.render(f'Generation : {Tetris.current_gen}', True, BLACK)
-        h_score = font.render(f'Highscore: {Tetris.h_score}', True, BLACK)
-        bf = font.render(f'Best fitness: {Tetris.best_fitness}', True, BLACK)
-        avf = font.render(f'Average Fitness: {Tetris.av_fitness}', True, BLACK)
-
-        self.win.blit(next_text, (pos_x-200, pos_y-80))
-
-        game_texts = [score, lines, tetrises]
-        ai_texts = [gen, h_score, bf, avf]
-
-        for ind, t in enumerate(game_texts):
-            self.win.blit(t, (pos_x - 200, pos_y + ind*40))
-
-        for ind, t in enumerate(ai_texts):
-            self.win.blit(t, (pos_x-60, top_left_y + (Tetris.pop_size//40)*15 + ind*30 + 20))
-
-        self.board.show_next_piece(self.win, self.next_piece)
-        self.board.render_grid(self.win, self.grid)
-        self.board.show_progress(self.win, Tetris.genome_count, Tetris.pop_size)
-
-        pygame.display.update()
-
-    @staticmethod
-    def set_genome_progress(genome_count, gen, pop_size, h_score, best_fitness, av_fitness):
-        Tetris.current_gen = gen
-        Tetris.genome_count = genome_count
-        Tetris.pop_size = pop_size
-        Tetris.h_score = h_score
-        Tetris.best_fitness = best_fitness
-        Tetris.av_fitness = av_fitness
-
-	def lost(self):
+    def lost(self):
         # if piece touches top of grid, it's a loss
         return any([pos[1] <= 2 for pos in self.landed])
 

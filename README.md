@@ -4,6 +4,7 @@ This code is for my NEA project, A level computer science.
 _____________________________________________________________________________
 Optimisation using a genetic algorithm to make an AI that plays good Tetris
 - train_agent_scratch.py uses a genetic algorithm written from scratch, without next piece knowledge (hasn't been optimised yet)
+- With next piece knowledge, the agent does very well. Results are shown here: https://www.youtube.com/watch?v=F8TkvoR6etk&t=656s
 
 The population and nueral net are coded in neuralnet.py
 
